@@ -1,9 +1,0 @@
-fd = ReadServerInfo() : exit if false
-fd2 = CreateClientPipe()
-
-ConnectServer() = send pid to server
-wait for write
-
-while (!Ctrl+C)
-	write Q
-	read&print A
