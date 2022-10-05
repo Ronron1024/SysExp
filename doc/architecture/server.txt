@@ -1,0 +1,44 @@
+# Process flow
+
+	fd = createServerPipe()
+	writeServerInfo()
+
+	fork() ------------------>	while (1)
+									client_fd = waitForConnection()
+	serverMenu()					fork()	----------------------------->	while (client connected)
+																				read Q
+	close resources																search A
+																				write A
+																			break;
+	
+
+# Functions
+
+int createServerPipe(char* pipe_name)
+	create a named pipe and return its file descriptor.
+	
+	char* pipe_name : the pipe name.
+
+
+void writeServerInfo(char* info_file_path)
+	create a file and write PID + server's named pipe.
+	
+	char* info_file_path : path to the server.info file (#define)
+	
+	
+void serverMenu()
+	Infinite loop preventing server to stop.
+	Can read user input to stop the server (must terminate all client).
+	
+	
+int waitForConnection()
+	wait for data sent by client on server pipe, then open the client pipe and return its file descriptor.
+	Server must write 1 in the pipe to validate connection.
+
+
+void searchAnswer(char* question, char* answer, char* BDD)
+	search the answer to a question in the BDD.
+	
+	char* question : the question
+	char* answer : string to write the answer
+	char* BDD : BDD file path
