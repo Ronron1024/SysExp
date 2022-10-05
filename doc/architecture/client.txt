@@ -1,0 +1,36 @@
+# Process flow
+
+	fd = readServerInfo() : exit if false
+	fd2 = createClientPipe()
+
+	connectServer() = send pid to server
+	wait for write : exit if timeout
+
+	while (!Ctrl+C)
+		write Q
+		read&print A
+		
+	close resources
+		
+# Functions
+
+int readServerInfo(char* info_file_path)
+	return a file descriptor on the server's named pipe or 0 if error.
+	
+	char* info_file_path : path to the server.info file (#define)
+
+
+int createClientPipe()
+	create a named pipe for communicate with the server and return its file descriptor.
+	Name of the pipe is PID.
+
+
+int connectServer(int server_pipe_fd, int client_pipe_fd, int timeout)
+	Write PID to base_server_pipe_fd.
+	
+	Return 1 if server write 1 in process named pipe.
+	Return 0 if no write before timeout.
+	
+	int server_pipe_fd : fd of the server pipe
+	int client_pipe_fd : fd of the client pipe
+	int timeout : time before aborting connection
