@@ -24,6 +24,8 @@ int createClientPipe()
 	create a named pipe for communicate with the server and return its file descriptor.
 	Name of the pipe is PID.
 
+	Return -1 if error
+
 
 int connectServer(int server_pipe_fd, int client_pipe_fd, int timeout)
 	Write PID to base_server_pipe_fd.
