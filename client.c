@@ -19,6 +19,12 @@ int createClientPipe();
 //	create a named pipe for communicate with the server and return its file descriptor.
 //	Name of the pipe is PID.
 
+int connectServer(int server_pipe_fd, int client_pipe_fd, int timeout);
+//	Write PID to base_server_pipe_fd.
+//
+//	Return 1 if server write 1 in process named pipe.
+//	Return 0 if no write before timeout.
+
 int main (int argc, char *agv[]){
 
 	printf("CREAT = %d\n",createClientPipe());
@@ -71,3 +77,14 @@ int readServerInfo(char* info_file_path){
     close(desc);
 	return dp;
 }
+
+int connectServer(int server_pipe_fd, int client_pipe_fd, int timeout){
+
+	char message[NAME_PIPE_CLIENT];
+
+	sprintf(message,"%d",client_pipe_fd);
+
+	write(server_pipe_fd,message,8*sizeof(char));
+
+}
+
