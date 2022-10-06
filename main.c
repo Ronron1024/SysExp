@@ -9,6 +9,11 @@
 
 #define NAME_PIPE_CLIENT 8
 
+#define MAX 15
+
+
+int readServerInfo(char* info_file_path);
+
 
 int createClientPipe();
 //	create a named pipe for communicate with the server and return its file descriptor.
@@ -17,6 +22,15 @@ int createClientPipe();
 int main (int argc, char *agv[]){
 
 	printf("CREAT = %d\n",createClientPipe());
+
+int desc=0;
+  char* info_file_path ="servinfo";
+    desc = readServerInfo(info_file_path);
+    
+    
+    write(desc, "coucou ",7) ;
+    close(desc);
+
 
 
 
@@ -38,4 +52,22 @@ int createClientPipe(){
        }
 
        return open(clientPipe,O_RDWR);
+}
+
+
+
+int readServerInfo(char* info_file_path){
+	
+	int dp=0;
+    int desc=0;
+	FILE* file = fopen(info_file_path, "r");
+	char buf[MAX];
+    fgets(buf, MAX, file);
+    
+    
+    printf("pipe is: %s\n", buf);
+	
+    dp=open(buf,O_WRONLY);
+    close(desc);
+	return dp;
 }
