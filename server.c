@@ -6,15 +6,20 @@
 #include <unistd.h>
 
 #define SERVER_PIPE_NAME "myfifo"
-#define SERVER_INFO "serverinfo"
+#define SERVER_INFO "servinfo"
 
 int createServerPipe(char *);
 void writeServerInfo(char * );
 
 
 int main(){
-	createServerPipe(SERVER_PIPE_NAME);
+	int fd = createServerPipe(SERVER_PIPE_NAME);
 	writeServerInfo(SERVER_INFO);
+
+	char buf[7] = {0};
+	read(fd, buf, 7);
+	printf("%s\n", buf);
+
 	return 0;	
 }
 
