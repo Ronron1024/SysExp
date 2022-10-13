@@ -13,25 +13,34 @@ void writeServerInfo(char * );
 
 
 int main(){
-	int fd = createServerPipe(SERVER_PIPE_NAME);
+	int server_pipe_fd = createServerPipe(SERVER_PIPE_NAME);
 	writeServerInfo(SERVER_INFO);
 
 	pid_t client_handler_pid = 0;
 	int client_pipe_fd = 0;
 
-	char buf[64] = {0};
+	char client_pid[64] = {0};
 	while (1)
 	{	
-		read(fd, buf, 64);
-		printf("%s\n", buf);
+		read(server_pipe_fd, client_pid, 64);	//Attente pid client dans server pipe - read bloquant
+		printf("%s\n", client_pid);
 		client_handler_pid = fork();
 
-		if (!client_handler_pid)
+		if (!client_handler_pid) //Si c' est le fils ( = 0)
 		{
-			client_pipe_fd = open(buf, O_RDWR);
+			client_pipe_fd = open(client_pid, O_RDWR); //buf = pid  client qui est aussi le nom du pipe avec lequel on communiquera au client
 			printf("CLIENT PIPE FD : %d\n",client_pipe_fd);
-			while(	read(client_pipe_fd, buf, 64) !=0) {
-				printf("CCCC%s\n", buf);			}
+			char message[64] = {0};
+			int byte_read = 0;
+
+			while (1)
+			{
+				byte_read = read(client_pipe_fd, message, 64);
+				message[byte_read] = 0;
+				printf("[%s] %s\n", client_pid, message);
+			}
+			close(client_pipe_fd);
+			break;
 		}
 	}
 
@@ -56,18 +65,21 @@ void writeServerInfo(char * info_file_path) {
 
 	pid_t pid = getpid ();
 
-	printf ("PID         : %ld\n", pid);
+	printf ("PID: %d\n", pid);
 
 	
 
 	fichier = fopen(info_file_path, "w+");// on ouvre ou cree le fichier
-	if (fichier != NULL){
-        // On peut lire et écrire dans le fichier
-	} else {
-        // On affiche un message d'erreur si on veut
-        printf("Impossible d'ouvrir le fichier test.txt");
+	if (fichier != NULL)
+	{
+		printf("Ouverture ok\n");
+		fprintf (fichier,"%s",SERVER_PIPE_NAME);
+	} 
+	else 
+	{
+        	printf("Impossible d'ouvrir le fichier test.txt");
     	}
-	fprintf (fichier,"%s",SERVER_PIPE_NAME);
+
 
 	fclose(fichier);
 }

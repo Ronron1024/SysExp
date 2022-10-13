@@ -10,6 +10,7 @@
 #define NAME_PIPE_CLIENT 8
 
 #define MAX 15
+#define SERVER_INFO_FILE_PATH "servinfo"
 
 
 int readServerInfo(char* info_file_path);
@@ -28,26 +29,22 @@ int connectServer(int server_pipe_fd, int client_pipe_fd, int timeout);
 int main (int argc, char *agv[]){
 
 	int client_pipe_fd = createClientPipe();
-	printf("CREAT = %d\n",client_pipe_fd);
+
+	printf("CREATED CLIENT PIPE = %d\n",client_pipe_fd);
 
 
-int desc=0;
-  char* info_file_path ="servinfo";
-    desc = readServerInfo(info_file_path);
+	int server_pipe_fd = readServerInfo(SERVER_INFO_FILE_PATH);
     
     
-   connectServer(desc, client_pipe_fd, 0);
-   char buf[64] = {0};
-   while (1)
-   {
-   	scanf("%s", buf);
-	write(client_pipe_fd, buf, 7);
-   }
-    close(desc);
-
-
-
-
+ 	connectServer(server_pipe_fd, client_pipe_fd, 0);
+	char buf[64] = {0};
+   	while (1)
+   	{
+   		fgets(buf, 64, stdin);
+		write(client_pipe_fd, buf, strlen(buf)*sizeof(char));
+	}
+	close(server_pipe_fd);
+	close(client_pipe_fd);
 
 	return 0;
 }
@@ -72,18 +69,17 @@ int createClientPipe(){
 
 int readServerInfo(char* info_file_path){
 	
-	int dp=0;
-    int desc=0;
+	int server_pipe_fd=0;
 	FILE* file = fopen(info_file_path, "r");
 	char buf[MAX];
-    fgets(buf, MAX, file);
+    	fgets(buf, MAX, file);
     
     
-    printf("pipe is: %s\n", buf);
+    	printf("server pipe is: %s\n", buf);
 	
-    dp=open(buf,O_WRONLY);
-    close(desc);
-	return dp;
+    	server_pipe_fd=open(buf,O_RDWR);
+    	fclose(file);
+	return server_pipe_fd;
 }
 
 int connectServer(int server_pipe_fd, int client_pipe_fd, int timeout){
@@ -92,7 +88,6 @@ int connectServer(int server_pipe_fd, int client_pipe_fd, int timeout){
 
 	sprintf(message,"%d",getpid());
 
-	write(server_pipe_fd,message,8*sizeof(char));
-
+	write(server_pipe_fd,message,strlen(message)*sizeof(char));
 }
 
