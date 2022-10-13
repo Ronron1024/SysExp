@@ -27,14 +27,22 @@ int connectServer(int server_pipe_fd, int client_pipe_fd, int timeout);
 
 int main (int argc, char *agv[]){
 
-	printf("CREAT = %d\n",createClientPipe());
+	int client_pipe_fd = createClientPipe();
+	printf("CREAT = %d\n",client_pipe_fd);
+
 
 int desc=0;
   char* info_file_path ="servinfo";
     desc = readServerInfo(info_file_path);
     
     
-    write(desc, "coucou ",7) ;
+   connectServer(desc, client_pipe_fd, 0);
+   char buf[64] = {0};
+   while (1)
+   {
+   	scanf("%s", buf);
+	write(client_pipe_fd, buf, 7);
+   }
     close(desc);
 
 
@@ -82,7 +90,7 @@ int connectServer(int server_pipe_fd, int client_pipe_fd, int timeout){
 
 	char message[NAME_PIPE_CLIENT];
 
-	sprintf(message,"%d",client_pipe_fd);
+	sprintf(message,"%d",getpid());
 
 	write(server_pipe_fd,message,8*sizeof(char));
 

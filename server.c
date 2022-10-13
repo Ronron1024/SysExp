@@ -16,9 +16,24 @@ int main(){
 	int fd = createServerPipe(SERVER_PIPE_NAME);
 	writeServerInfo(SERVER_INFO);
 
-	char buf[7] = {0};
-	read(fd, buf, 7);
-	printf("%s\n", buf);
+	pid_t client_handler_pid = 0;
+	int client_pipe_fd = 0;
+
+	char buf[64] = {0};
+	while (1)
+	{	
+		read(fd, buf, 64);
+		printf("%s\n", buf);
+		client_handler_pid = fork();
+
+		if (!client_handler_pid)
+		{
+			client_pipe_fd = open(buf, O_RDWR);
+			printf("CLIENT PIPE FD : %d\n",client_pipe_fd);
+			while(	read(client_pipe_fd, buf, 64) !=0) {
+				printf("CCCC%s\n", buf);			}
+		}
+	}
 
 	return 0;	
 }
