@@ -86,6 +86,16 @@ nav {
     text-shadow: 2px 2px 4px #000000;
     font-family: 'Cherry Swash', cursive;
   }
+
+h2 {
+  margin-left: 75px;
+  margin: 40px 0 40px;
+  text-align: left;
+  font-size: 30px;
+  color: #ecf0f1;
+  text-shadow: 2px 2px 4px #000000;
+  font-family: 'Cherry Swash', cursive;
+}
   
   p {
     
