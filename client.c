@@ -38,14 +38,19 @@ int main (int argc, char *agv[]){
     
  	connectServer(server_pipe_fd, client_pipe_fd, 0);
 	char buf[64] = {0};
+	int byte_read = 0;
    	while (1)
    	{
    		fgets(buf, 64, stdin);
 		write(client_pipe_fd, buf, strlen(buf)*sizeof(char));
+		usleep(100);
+		byte_read = read(client_pipe_fd, buf, 64);
+		buf[byte_read] = 0;
+		printf("ANSWER : %s", buf);
 	}
 	close(server_pipe_fd);
 	close(client_pipe_fd);
-
+	// MUST UNLINK CLIENT PIPE
 	return 0;
 }
 
