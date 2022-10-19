@@ -10,11 +10,22 @@
 #define SERVER_PIPE_NAME "myfifo"
 #define SERVER_INFO "servinfo"
 #define BDD_PATH "ressource/database.csv"
+#define PSEUDO_MAX_SIZE 32
+
+typedef struct Client
+{
+	char pseudo[PSEUDO_MAX_SIZE];
+	int is_spy;
+	int has_token;
+	int vote;
+	pid_t PID;
+} Client;
 
 int createServerPipe(char *);
 void writeServerInfo(char * );
 void searchAnswer(char*, char*, char*);
 
+void printClient(Client);
 
 int main(){
 	int server_pipe_fd = createServerPipe(SERVER_PIPE_NAME);
@@ -34,20 +45,24 @@ int main(){
 		{
 			client_pipe_fd = open(client_pid, O_RDWR); //buf = pid  client qui est aussi le nom du pipe avec lequel on communiquera au client
 			printf("CLIENT PIPE FD : %d\n",client_pipe_fd);
-			char message[64] = {0};
-			char answer[64]={0};
-			int byte_read = 0;
+
+			Client players[5] = {
+				{"Andre", 0, 0, 0, 0},
+				{"Olivier", 0, 0, 0, 0},
+				{"Cyprien", 0, 0, 0, 0},
+				{"Adnen", 1, 0, 0, 0},
+				{"Gabriel", 0, 0, 0, 0}			
+			};
+			Client client_buffer;
 
 			while (1)
 			{
+				printf("Press enter to send player list."); getchar();
+				for (int i = 0; i < 5; i++)
+					write(client_pipe_fd, &players[i], sizeof(Client));
 				usleep(100);
-				byte_read = read(client_pipe_fd, message, 64);
-				message[byte_read] = 0;
-				printf("[%s] %s\n", client_pid, message);
-
-				searchAnswer(message,answer,BDD_PATH);
-
-				write(client_pipe_fd, answer,strlen(answer)*sizeof(char));
+				read(client_pipe_fd, &client_buffer, sizeof(Client));
+				printClient(client_buffer);
 			}
 			close(client_pipe_fd);
 			exit(0);
@@ -130,4 +145,10 @@ void searchAnswer(char* question, char* answer, char* BDD)
 		}
 		
 	}
+}
+
+void printClient(Client client)
+{
+	printf("Pseudo : %s\n", client.pseudo);
+	printf("Is spy : %s\n", client.is_spy ? "True" : "False");
 }
