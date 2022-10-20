@@ -54,3 +54,8 @@ dkms.conf
 # VSCode config
 .vs/
 .vscode/
+client
+
+server
+
+server.info
