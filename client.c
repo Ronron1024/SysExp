@@ -3,91 +3,138 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <string.h>
+#include <sys/wait.h>
 #include <stdlib.h>
 #include <signal.h>
 #include <fcntl.h>
 
-#define NAME_PIPE_CLIENT 8
-
-#define MAX 15
-#define SERVER_INFO_FILE_PATH "servinfo"
-
+#include "server_config.h"
+#include "structures.h"
 
 int readServerInfo(char* info_file_path);
-
-
 int createClientPipe();
-//	create a named pipe for communicate with the server and return its file descriptor.
-//	Name of the pipe is PID.
+int connectServer(int server_pipe_fd, Client client, int timeout);
+void deconnectServer();
 
-int connectServer(int server_pipe_fd, int client_pipe_fd, int timeout);
-//	Write PID to base_server_pipe_fd.
-//
-//	Return 1 if server write 1 in process named pipe.
-//	Return 0 if no write before timeout.
+void sigintHandler(int signum);
 
-int main (int argc, char *agv[]){
+void trimCarriageReturn(char*);
 
-	int client_pipe_fd = createClientPipe();
+// Global variable for access in sigintHandler
+Client me;
+int server_pipe_fd;
 
-	printf("CREATED CLIENT PIPE = %d\n",client_pipe_fd);
+int main ()
+{
+	// Register signal handler
+	signal(SIGINT, sigintHandler);
 
+	// Get client identity
+	me.is_spy = -1;
+	me.pipe_fd = createClientPipe();
+	me.PID = getpid();
+	printf("Pseudo : ");
+	fgets(me.pseudo, STRING_MAX_SIZE, stdin);
+	trimCarriageReturn(me.pseudo);
 
-	int server_pipe_fd = readServerInfo(SERVER_INFO_FILE_PATH);
-    
-    
- 	connectServer(server_pipe_fd, client_pipe_fd, 0);
-	char buf[64] = {0};
-   	while (1)
-   	{
-   		fgets(buf, 64, stdin);
-		write(client_pipe_fd, buf, strlen(buf)*sizeof(char));
+	// Connect to server
+	server_pipe_fd = readServerInfo(SERVER_INFO_FILE_PATH);
+ 	connectServer(server_pipe_fd, me, 0);
+
+	Message message_buffer;
+	
+	// Read message from other clients
+	pid_t reader = fork();
+	if (!reader)
+	{
+		// Unregister SIGINT for prevent double deconnection
+		signal(SIGINT, NULL);
+
+		while (1)
+		{
+			read(me.pipe_fd, &message_buffer, sizeof(Message));
+			printf("\n[%s] %s\n", message_buffer.client.pseudo, message_buffer.message);	
+		}
 	}
-	close(server_pipe_fd);
-	close(client_pipe_fd);
+
+	while (1)
+   	{
+		message_buffer.client = me;
+		message_buffer.command = MESSAGE;
+   		fgets(message_buffer.message, STRING_MAX_SIZE, stdin);
+
+		write(server_pipe_fd, &message_buffer, sizeof(Message));
+	}
 
 	return 0;
 }
 
-
-
-int createClientPipe(){
-
-	char clientPipe[NAME_PIPE_CLIENT];
-	
+int createClientPipe()
+{
+	char clientPipe[STRING_MAX_SIZE];
 	sprintf(clientPipe,"%d",getpid());
 
-       if(mkfifo(clientPipe, 0666)== -1){
-       
-       	return -1;
-       }
+	if(mkfifo(clientPipe, 0666) == -1)
+		return -1;
 
-       return open(clientPipe,O_RDWR);
+	return open(clientPipe,O_RDWR);
 }
 
-
-
-int readServerInfo(char* info_file_path){
+int readServerInfo(char* info_file_path)
+{	
+	FILE* info_file = fopen(info_file_path, "r");
 	
-	int server_pipe_fd=0;
-	FILE* file = fopen(info_file_path, "r");
-	char buf[MAX];
-    	fgets(buf, MAX, file);
-    
-    
-    	printf("server pipe is: %s\n", buf);
+	if (!info_file)
+	{
+		fprintf(stderr, "Error while opening %s\n", info_file_path);
+		return -1;
+	}
+
+	// Read server info file
+	char buf[STRING_MAX_SIZE];
+    	fgets(buf, STRING_MAX_SIZE, info_file);
+    	fclose(info_file);
 	
-    	server_pipe_fd=open(buf,O_RDWR);
-    	fclose(file);
-	return server_pipe_fd;
+	return open(buf,O_RDWR);
 }
 
-int connectServer(int server_pipe_fd, int client_pipe_fd, int timeout){
+int connectServer(int server_pipe_fd, Client client, int timeout)
+{
+	Message message = {
+		client,
+		CONNECTION,
+		"This is the connection message"
+	};
+	write(server_pipe_fd, &message, sizeof(Message));
 
-	char message[NAME_PIPE_CLIENT];
-
-	sprintf(message,"%d",getpid());
-
-	write(server_pipe_fd,message,strlen(message)*sizeof(char));
+	return 1;
 }
 
+void deconnectServer()
+{
+	Message message = {
+		me,
+		DECONNECTION,
+		"This is the deconnection message"
+	};
+	write(server_pipe_fd, &message, sizeof(Message));
+
+	close(server_pipe_fd);
+	close(me.pipe_fd);
+	
+	char pipe_name[STRING_MAX_SIZE] = {0};
+	sprintf(pipe_name, "%d", me.PID);
+	unlink(pipe_name);
+}
+
+void sigintHandler(int signum)
+{
+	deconnectServer();
+	wait(NULL);
+	exit(0);
+}
+
+void trimCarriageReturn(char* str)
+{
+	str[strlen(str)-1]=0;
+}

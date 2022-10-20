@@ -5,82 +5,131 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#define SERVER_PIPE_NAME "myfifo"
-#define SERVER_INFO "servinfo"
+#include "server_config.h"
+#include "structures.h"
 
-int createServerPipe(char *);
-void writeServerInfo(char * );
+int createServerPipe();
+void writeServerInfo();
+void handleMessage(Message*, Client*, int* connected_clients);
+void handleConnection(Client*, Client*, int* connected_clients);
+void handleDeconnection(Client*, Client*, int* connected_clients);
 
+int server_pipe_fd = 0; // MUST CHECK
 
-int main(){
-	int server_pipe_fd = createServerPipe(SERVER_PIPE_NAME);
-	writeServerInfo(SERVER_INFO);
+int main()
+{
+	// Create server resources
+	server_pipe_fd = createServerPipe(SERVER_PIPE_NAME);
+	writeServerInfo(SERVER_INFO_FILE_PATH);
 
-	pid_t client_handler_pid = 0;
-	int client_pipe_fd = 0;
+	// Clients management variables
+	int connected_clients = 0;
+	Client clients[SERVER_MAX_CLIENTS];
 
-	char client_pid[64] = {0};
+	// Server pipes buffer
+	Message message_buffer;
+
+	int byte_read = 0;
 	while (1)
 	{	
-		read(server_pipe_fd, client_pid, 64);	//Attente pid client dans server pipe - read bloquant
-		printf("%s\n", client_pid);
-		client_handler_pid = fork();
-
-		if (!client_handler_pid) //Si c' est le fils ( = 0)
-		{
-			client_pipe_fd = open(client_pid, O_RDWR); //buf = pid  client qui est aussi le nom du pipe avec lequel on communiquera au client
-			printf("CLIENT PIPE FD : %d\n",client_pipe_fd);
-			char message[64] = {0};
-			int byte_read = 0;
-
-			while (1)
-			{
-				byte_read = read(client_pipe_fd, message, 64);
-				message[byte_read] = 0;
-				printf("[%s] %s\n", client_pid, message);
-			}
-			close(client_pipe_fd);
-			break;
-		}
+		// Wait for a message in server pipe
+		byte_read = read(server_pipe_fd, &message_buffer, sizeof(Message));
+		if (!byte_read)
+			continue;
+		
+		handleMessage(&message_buffer, clients, &connected_clients);
 	}
 
 	return 0;	
 }
 
-int createServerPipe(char * myfifo)
+int createServerPipe()
 {
-
-    // FIFO file path
-
-    // Creating the named file(FIFO)
-    // mkfifo(<pathname>,<permission>)
-    mkfifo(myfifo, 0666);
-
+    if (mkfifo(SERVER_PIPE_NAME, 0666) == -1)
+	    return -1;
     
-    return open(myfifo,O_RDWR);
+    return open(SERVER_PIPE_NAME, O_RDONLY);
 }
 
-void writeServerInfo(char * info_file_path) {
-	FILE* fichier = NULL;// on cree un truc la
-
-	pid_t pid = getpid ();
-
-	printf ("PID: %d\n", pid);
-
+void writeServerInfo() {
+	FILE* info_file = fopen(SERVER_INFO_FILE_PATH, "w");
 	
-
-	fichier = fopen(info_file_path, "w+");// on ouvre ou cree le fichier
-	if (fichier != NULL)
+	if (info_file != NULL)
 	{
-		printf("Ouverture ok\n");
-		fprintf (fichier,"%s",SERVER_PIPE_NAME);
+		fprintf(info_file, "%s", SERVER_PIPE_NAME);
+		
+		printf("Successfully created %s file.\n", SERVER_INFO_FILE_PATH);
+		printf("\tServer pipe name is : %s\n", SERVER_PIPE_NAME);
+		fflush(stdout); // No printing otherwise
 	} 
 	else 
 	{
-        	printf("Impossible d'ouvrir le fichier test.txt");
+        	fprintf(stderr, "Error while creating %s file.\n", SERVER_INFO_FILE_PATH);
     	}
 
-
-	fclose(fichier);
+	fclose(info_file);
 }
 
+void handleMessage(Message* message, Client* clients, int* connected_clients)
+{
+	switch (message->command)
+	{
+		case CONNECTION:
+			handleConnection(&message->client, clients, connected_clients);
+			break;
+
+		case DECONNECTION:
+			handleDeconnection(&message->client, clients, connected_clients);
+			break;
+
+		case MESSAGE:
+			// MUST MAKE A FUNCTION
+			printf("[%s] %s\n", message->client.pseudo, message->message);
+			for (int i = 0; i < *connected_clients; i++)
+			{
+				if (clients[i].PID != message->client.PID)
+				{
+					write(clients[i].pipe_fd, message, sizeof(Message));
+				}
+			}
+			break;
+	}
+}
+
+void handleConnection(Client* client, Client* clients, int* connected_clients)
+{
+	// Open client pipe
+	char client_pipe_name[STRING_MAX_SIZE] = {0};
+	sprintf(client_pipe_name, "%d", client->PID);
+	client->pipe_fd = open(client_pipe_name, O_WRONLY);
+
+	// Update client list
+	clients[*connected_clients] = *client;
+	*connected_clients = *connected_clients + 1;
+
+	// Print information
+	printf("%s has connected.\n", client->pseudo);
+	printf("\tNumber of client connected : %d\n", *connected_clients);
+}
+
+void handleDeconnection(Client* client, Client* clients, int* connected_clients)
+{
+	close(client->pipe_fd);
+
+	// MUST CHECK
+	close(server_pipe_fd);
+	server_pipe_fd = open(SERVER_PIPE_NAME, O_RDONLY);
+
+	for (int i = 0; i < *connected_clients; i++)
+	{
+		if (clients[i].PID == client->PID)
+		{
+			for (int j = i; j < *connected_clients - 1; j++)
+				clients[j] = clients[j+1];
+		}
+	}
+	*connected_clients = *connected_clients - 1;
+
+	printf("%s has disconnected.\n", client->pseudo);
+	printf("\tNumber of client connected : %d\n", *connected_clients);
+}
