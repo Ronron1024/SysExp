@@ -10,51 +10,146 @@
 #define SERVER_PIPE_NAME "myfifo"
 #define SERVER_INFO "servinfo"
 #define BDD_PATH "ressource/database.csv"
+#define NUMBER_CLIENT_MAX 64
+#define CHAR_NAME_MAX 16
+
+typedef struct client 
+{ 
+	char name[CHAR_NAME_MAX];
+	int is_spy;
+	int has_token;
+	pid_t pid;
+	int vote;
+} CLIENT;
 
 int createServerPipe(char *);
 void writeServerInfo(char * );
 void searchAnswer(char*, char*, char*);
+void displayClient (CLIENT *liste);
 
 
 int main(){
+
+	CLIENT Client[NUMBER_CLIENT_MAX];
+	CLIENT *Player;
+
+	int nbclient = 0;
+	int go =0;
+	int choix = 0;
+
 	int server_pipe_fd = createServerPipe(SERVER_PIPE_NAME);
+	if (server_pipe_fd == -1)
+	{
+		printf(" Err open pipe: server_pipe_fd\n");
+	} 
+
 	writeServerInfo(SERVER_INFO);
 
 	pid_t client_handler_pid = 0;
 	int client_pipe_fd = 0;
 
 	char client_pid[64] = {0};
-	while (1)
+
+	/*Menu*/
+
+	pid_t menu= fork();
+	
+	if(!menu)
 	{	
-		read(server_pipe_fd, client_pid, 64);	//Attente pid client dans server pipe - read bloquant
-		printf("%s\n", client_pid);
+		printf("---------------\n");
+		printf("|1-Start Game |\n");
+		printf("|2-Stop Server|\n");
+		printf("|Choix?       |\n");
+		printf("---------------\n");
+
+		while (choix == 0)
+		{
+
+			switch ( getchar() )
+			{
+
+				case '1':
+					printf("Choix 1\n");
+					choix = 1;
+					break;
+
+				case '2':
+					printf("choix 2\n");
+					choix = 2;
+					break;
+
+				defaut:
+					break;
+			}
+		}
+
+		exit(0);
+	}
+	
+	/*End Menu*/
+	while(1)
+	{
+	
+		/*read(server_pipe_fd, client_pid, 64);	//Attente pid client dans server pipe - read bloquant*/
+		//Player = (CLIENT*) malloc(sizeof(CLIENT));
+
+		if ( read(server_pipe_fd,&Client[nbclient],sizeof(CLIENT)) == -1 )
+		{
+			printf("Err read server pipe\n");
+		}
+
+
+		//printf("PID en cours %d", getpid());
+		//printf("NbClient av = %d\n",nbclient);
+		nbclient++;
+		//printf("NbClient ap = %d\n",nbclient);
+		displayClient( &Client[nbclient] );
+
 		client_handler_pid = fork();
 
 		if (!client_handler_pid) //Si c' est le fils ( = 0)
-		{
-			client_pipe_fd = open(client_pid, O_RDWR); //buf = pid  client qui est aussi le nom du pipe avec lequel on communiquera au client
-			printf("CLIENT PIPE FD : %d\n",client_pipe_fd);
+		{	
+			
+			/*Partie connection*/
+			client_pipe_fd = open(client_pid, O_RDWR); //pid  client qui est aussi le nom du pipe avec lequel on communiquera au client
+			
+			//printf("CLIENT PIPE FD : %d\n",client_pipe_fd);
+			
 			char message[64] = {0};
 			char answer[64]={0};
 			int byte_read = 0;
 
-			while (1)
+			/*La partie demarre ici?*/
+			
+			
+		
+			if (go == 1)
 			{
-				usleep(100);
-				byte_read = read(client_pipe_fd, message, 64);
-				message[byte_read] = 0;
-				printf("[%s] %s\n", client_pid, message);
 
-				searchAnswer(message,answer,BDD_PATH);
+				while (1)
+				{
+					usleep(100);
+					byte_read = read(client_pipe_fd, message, 64);
+					message[byte_read] = 0;
+					printf("[%s] %s\n", client_pid, message);
 
-				write(client_pipe_fd, answer,strlen(answer)*sizeof(char));
+					searchAnswer(message,answer,BDD_PATH);
+
+					write(client_pipe_fd, answer,strlen(answer)*sizeof(char));
+				}
+
+				close(client_pipe_fd);
+				exit(0);
 			}
 			close(client_pipe_fd);
 			exit(0);
 		}
 	}
-	
-	wait(NULL);
+
+	printf("PAPA est la!! wait = %d\n", wait(NULL));
+	while ( wait(NULL) != -1);
+	printf("BYE");
+
 	close(server_pipe_fd);
 	unlink(SERVER_PIPE_NAME);
 	return 0;	
@@ -67,6 +162,7 @@ int createServerPipe(char * myfifo)
 
     // Creating the named file(FIFO)
     // mkfifo(<pathname>,<permission>)
+    unlink(myfifo);
     mkfifo(myfifo, 0666);
 
     
@@ -131,3 +227,10 @@ void searchAnswer(char* question, char* answer, char* BDD)
 		
 	}
 }
+
+
+void displayClient (CLIENT *liste)
+{
+	printf(">[%s] \n",( liste )->name);
+}
+
