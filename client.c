@@ -11,6 +11,17 @@
 
 #define MAX 15
 #define SERVER_INFO_FILE_PATH "servinfo"
+#define CHAR_NAME_MAX 16
+
+typedef struct client
+{
+        char name[CHAR_NAME_MAX];
+        int is_spy;
+        int has_token;
+        pid_t pid;
+        int vote;
+} CLIENT;
+
 
 
 int readServerInfo(char* info_file_path);
@@ -37,8 +48,15 @@ int main (int argc, char *agv[]){
     
     
  	connectServer(server_pipe_fd, client_pipe_fd, 0);
+
+	usleep(500);
+
 	char buf[64] = {0};
 	int byte_read = 0;
+
+	while(1);
+
+	/*
    	while (1)
    	{
    		fgets(buf, 64, stdin);
@@ -47,7 +65,7 @@ int main (int argc, char *agv[]){
 		byte_read = read(client_pipe_fd, buf, 64);
 		buf[byte_read] = 0;
 		printf("ANSWER : %s", buf);
-	}
+	}*/
 	close(server_pipe_fd);
 	close(client_pipe_fd);
 	// MUST UNLINK CLIENT PIPE
@@ -89,10 +107,19 @@ int readServerInfo(char* info_file_path){
 
 int connectServer(int server_pipe_fd, int client_pipe_fd, int timeout){
 
-	char message[NAME_PIPE_CLIENT];
+	//char message[NAME_PIPE_CLIENT];
+	CLIENT *Player;
 
-	sprintf(message,"%d",getpid());
+	Player = (CLIENT*) malloc (sizeof(CLIENT) );
 
-	write(server_pipe_fd,message,strlen(message)*sizeof(char));
+
+
+	Player->pid = getpid();
+	scanf(" %s",Player->name);
+
+	//sprintf(message,"%d",getpid());
+
+	//write(server_pipe_fd,message,strlen(message)*sizeof(char));
+	write(server_pipe_fd,Player,sizeof(CLIENT));
 }
 
