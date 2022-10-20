@@ -27,6 +27,7 @@ void writeServerInfo(char * );
 void searchAnswer(char*, char*, char*);
 void displayClient (CLIENT *liste);
 
+void printClient(Client);
 
 int main(){
 
@@ -44,8 +45,7 @@ int main(){
 	} 
 
 	writeServerInfo(SERVER_INFO);
-
-	pid_t client_handler_pid = 0;
+    pid_t client_handler_pid = 0;
 	int client_pipe_fd = 0;
 
 	char client_pid[64] = {0};
@@ -108,39 +108,23 @@ int main(){
 		client_handler_pid = fork();
 
 		if (!client_handler_pid) //Si c' est le fils ( = 0)
-		{	
-			
-			/*Partie connection*/
-			client_pipe_fd = open(client_pid, O_RDWR); //pid  client qui est aussi le nom du pipe avec lequel on communiquera au client
-			
-			//printf("CLIENT PIPE FD : %d\n",client_pipe_fd);
-			
+		{
+			client_pipe_fd = open(client_pid, O_RDWR); //buf = pid  client qui est aussi le nom du pipe avec lequel on communiquera au client
+			printf("CLIENT PIPE FD : %d\n",client_pipe_fd);
 			char message[64] = {0};
 			char answer[64]={0};
 			int byte_read = 0;
 
-			/*La partie demarre ici?*/
-			
-			
-		
-			if (go == 1)
+			CLIENT client_buffer;
+            while (1)
 			{
-
-				while (1)
-				{
-					usleep(100);
-					byte_read = read(client_pipe_fd, message, 64);
-					message[byte_read] = 0;
-					printf("[%s] %s\n", client_pid, message);
-
-					searchAnswer(message,answer,BDD_PATH);
-
-					write(client_pipe_fd, answer,strlen(answer)*sizeof(char));
-				}
-
-				close(client_pipe_fd);
-				exit(0);
-			}
+				printf("Press enter to send player list."); getchar();
+				for (int i = 0; i < 5; i++)
+					write(client_pipe_fd, &Client[i], sizeof(CLIENT));
+				usleep(100);
+				read(client_pipe_fd, &client_buffer, sizeof(CLIENT));
+				printClient(client_buffer);
+            }
 			close(client_pipe_fd);
 			exit(0);
 		}
@@ -228,9 +212,8 @@ void searchAnswer(char* question, char* answer, char* BDD)
 	}
 }
 
-
-void displayClient (CLIENT *liste)
+void printClient(Client client)
 {
-	printf(">[%s] \n",( liste )->name);
+	printf("Pseudo : %s\n", client.pseudo);
+	printf("Is spy : %s\n", client.is_spy ? "True" : "False");
 }
-

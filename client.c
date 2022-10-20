@@ -22,6 +22,7 @@ typedef struct client
         int vote;
 } CLIENT;
 
+void printClient(Client);
 
 
 int readServerInfo(char* info_file_path);
@@ -48,24 +49,23 @@ int main (int argc, char *agv[]){
     
     
  	connectServer(server_pipe_fd, client_pipe_fd, 0);
-
-	usleep(500);
-
-	char buf[64] = {0};
-	int byte_read = 0;
-
-	while(1);
-
-	/*
+	Client client_buffer;
+	Client players[5];
+	int user_choice = 0;
    	while (1)
    	{
-   		fgets(buf, 64, stdin);
-		write(client_pipe_fd, buf, strlen(buf)*sizeof(char));
+		for (int i = 0; i < 5; i++)
+		{
+			read(client_pipe_fd, &client_buffer, sizeof(Client));
+			players[i] = client_buffer;
+			printf("%d. %s\n", i+1, client_buffer.pseudo);
+		}
+
+		scanf("%d", &user_choice);
+		user_choice = user_choice > 4 || user_choice < 0 ? 0 : user_choice - 1;
+		write(client_pipe_fd, &players[user_choice], sizeof(Client));
 		usleep(100);
-		byte_read = read(client_pipe_fd, buf, 64);
-		buf[byte_read] = 0;
-		printf("ANSWER : %s", buf);
-	}*/
+	}
 	close(server_pipe_fd);
 	close(client_pipe_fd);
 	// MUST UNLINK CLIENT PIPE
@@ -123,3 +123,8 @@ int connectServer(int server_pipe_fd, int client_pipe_fd, int timeout){
 	write(server_pipe_fd,Player,sizeof(CLIENT));
 }
 
+void printClient(Client client)
+{
+	printf("Pseudo : %s\n", client.pseudo);
+	printf("Is spy : %s\n", client.is_spy ? "True" : "False");
+}
