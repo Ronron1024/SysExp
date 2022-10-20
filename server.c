@@ -12,22 +12,22 @@
 #define BDD_PATH "ressource/database.csv"
 #define NUMBER_CLIENT_MAX 64
 #define CHAR_NAME_MAX 16
+#define NAME_PIPE_CLIENT 8
 
 typedef struct client 
 { 
 	char name[CHAR_NAME_MAX];
 	int is_spy;
-	int has_token;
-	pid_t pid;
+	int token; //pid de celui qui interroge
+	char pid[NAME_PIPE_CLIENT];
 	int vote;
 } CLIENT;
 
 int createServerPipe(char *);
 void writeServerInfo(char * );
 void searchAnswer(char*, char*, char*);
-void displayClient (CLIENT *liste);
 
-void printClient(Client);
+void printClient(CLIENT);
 
 int main(){
 
@@ -71,11 +71,14 @@ int main(){
 				case '1':
 					printf("Choix 1\n");
 					choix = 1;
+					//Random word/spy/token
+					go = 1;					
 					break;
 
 				case '2':
 					printf("choix 2\n");
 					choix = 2;
+					//Kill child
 					break;
 
 				defaut:
@@ -89,45 +92,50 @@ int main(){
 	/*End Menu*/
 	while(1)
 	{
-	
-		/*read(server_pipe_fd, client_pid, 64);	//Attente pid client dans server pipe - read bloquant*/
-		//Player = (CLIENT*) malloc(sizeof(CLIENT));
+		if (go)//Game loop
+		{
+			//Init game envoie word et et spy
+			//Envoie la liste des client à celui qui à le token pour parler
+			//Question client vers client
+			//Affichage reponse sur serveur
+			//
+		}
 
 		if ( read(server_pipe_fd,&Client[nbclient],sizeof(CLIENT)) == -1 )
 		{
 			printf("Err read server pipe\n");
 		}
 
+		printClient( Client[nbclient] );
+		open(Client[nbclient].pid, O_RDWR);
 
-		//printf("PID en cours %d", getpid());
-		//printf("NbClient av = %d\n",nbclient);
-		nbclient++;
-		//printf("NbClient ap = %d\n",nbclient);
-		displayClient( &Client[nbclient] );
 
+		/*Communication à plusieur pas necessaire - fonction tchat à part
+ 
 		client_handler_pid = fork();
 
 		if (!client_handler_pid) //Si c' est le fils ( = 0)
 		{
-			client_pipe_fd = open(client_pid, O_RDWR); //buf = pid  client qui est aussi le nom du pipe avec lequel on communiquera au client
+			client_pipe_fd = open(Client[nbclient].pid, O_RDWR); //buf = pid  client qui est aussi le nom du pipe avec lequel on communiquera au client
 			printf("CLIENT PIPE FD : %d\n",client_pipe_fd);
 			char message[64] = {0};
 			char answer[64]={0};
 			int byte_read = 0;
 
 			CLIENT client_buffer;
-            while (1)
+			while (1)
 			{
 				printf("Press enter to send player list."); getchar();
-				for (int i = 0; i < 5; i++)
-					write(client_pipe_fd, &Client[i], sizeof(CLIENT));
+				write(client_pipe_fd, &Client[nbclient], sizeof(CLIENT));
 				usleep(100);
 				read(client_pipe_fd, &client_buffer, sizeof(CLIENT));
 				printClient(client_buffer);
-            }
+            		}
 			close(client_pipe_fd);
 			exit(0);
 		}
+		*/
+		nbclient++;
 	}
 
 	printf("PAPA est la!! wait = %d\n", wait(NULL));
@@ -212,8 +220,8 @@ void searchAnswer(char* question, char* answer, char* BDD)
 	}
 }
 
-void printClient(Client client)
+void printClient(CLIENT client)
 {
-	printf("Pseudo : %s\n", client.pseudo);
+	printf("Pseudo : %s\n", client.name);
 	printf("Is spy : %s\n", client.is_spy ? "True" : "False");
 }
