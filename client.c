@@ -23,6 +23,7 @@ void trimCarriageReturn(char*);
 // Global variable for access in sigintHandler
 Client me;
 int server_pipe_fd;
+pid_t reader = 0;
 
 int main ()
 {
@@ -44,7 +45,7 @@ int main ()
 	Message message_buffer;
 	
 	// Read message from other clients
-	pid_t reader = fork();
+	reader = fork();
 	if (!reader)
 	{
 		// Unregister SIGINT for prevent double deconnection
@@ -130,6 +131,7 @@ void deconnectServer()
 void sigintHandler(int signum)
 {
 	deconnectServer();
+	kill(reader, SIGINT);
 	wait(NULL);
 	exit(0);
 }

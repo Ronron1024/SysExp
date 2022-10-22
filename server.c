@@ -1,12 +1,16 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <fcntl.h>
+#include <sys/signal.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
 
 #include "server_config.h"
 #include "structures.h"
+
+void sigintHandler(int);
 
 int createServerPipe();
 void writeServerInfo();
@@ -16,15 +20,18 @@ void handleDeconnection(Client*, Client*, int* connected_clients);
 
 int server_pipe_fd = 0; 
 
+// Clients management variables
+int connected_clients = 0;
+Client clients[SERVER_MAX_CLIENTS];
+
 int main()
 {
+	// Register SIGINT
+	signal(SIGINT, sigintHandler);
+
 	// Create server resources
 	server_pipe_fd = createServerPipe();
 	writeServerInfo();
-
-	// Clients management variables
-	int connected_clients = 0;
-	Client clients[SERVER_MAX_CLIENTS];
 
 	// Server pipes buffer
 	Message message_buffer;
@@ -41,6 +48,20 @@ int main()
 	}
 
 	return 0;	
+}
+
+void sigintHandler(int signum)
+{
+	for (int i = 0; i < connected_clients; i++)
+	{
+		close(clients[i].pipe_fd);
+		kill(clients[i].PID, SIGINT);
+	}
+
+	close(server_pipe_fd);
+	unlink(SERVER_PIPE_NAME);
+
+	exit(0);
 }
 
 int createServerPipe()
