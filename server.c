@@ -14,13 +14,13 @@ void handleMessage(Message*, Client*, int* connected_clients);
 void handleConnection(Client*, Client*, int* connected_clients);
 void handleDeconnection(Client*, Client*, int* connected_clients);
 
-int server_pipe_fd = 0; // MUST CHECK
+int server_pipe_fd = 0; 
 
 int main()
 {
 	// Create server resources
-	server_pipe_fd = createServerPipe(SERVER_PIPE_NAME);
-	writeServerInfo(SERVER_INFO_FILE_PATH);
+	server_pipe_fd = createServerPipe();
+	writeServerInfo();
 
 	// Clients management variables
 	int connected_clients = 0;
@@ -34,7 +34,7 @@ int main()
 	{	
 		// Wait for a message in server pipe
 		byte_read = read(server_pipe_fd, &message_buffer, sizeof(Message));
-		if (!byte_read)
+		if (!byte_read || byte_read == EOF)
 			continue;
 		
 		handleMessage(&message_buffer, clients, &connected_clients);
@@ -45,10 +45,8 @@ int main()
 
 int createServerPipe()
 {
-    if (mkfifo(SERVER_PIPE_NAME, 0666) == -1)
-	    return -1;
-    
-    return open(SERVER_PIPE_NAME, O_RDONLY);
+	mkfifo(SERVER_PIPE_NAME, 0666);
+	return open(SERVER_PIPE_NAME, O_RDONLY);
 }
 
 void writeServerInfo() {
@@ -57,17 +55,14 @@ void writeServerInfo() {
 	if (info_file != NULL)
 	{
 		fprintf(info_file, "%s", SERVER_PIPE_NAME);
-		
+		fclose(info_file);
 		printf("Successfully created %s file.\n", SERVER_INFO_FILE_PATH);
 		printf("\tServer pipe name is : %s\n", SERVER_PIPE_NAME);
-		fflush(stdout); // No printing otherwise
 	} 
 	else 
 	{
         	fprintf(stderr, "Error while creating %s file.\n", SERVER_INFO_FILE_PATH);
     	}
-
-	fclose(info_file);
 }
 
 void handleMessage(Message* message, Client* clients, int* connected_clients)
