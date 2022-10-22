@@ -23,7 +23,6 @@ void trimCarriageReturn(char*);
 // Global variable for access in sigintHandler
 Client me;
 int server_pipe_fd;
-pid_t reader = 0;
 
 int main ()
 {
@@ -43,28 +42,14 @@ int main ()
  	connectServer(server_pipe_fd, me, 0);
 
 	Message message_buffer;
-	
-	// Read message from other clients
-	reader = fork();
-	if (!reader)
-	{
-		// Unregister SIGINT for prevent double deconnection
-		signal(SIGINT, NULL);
-
-		while (1)
-		{
-			read(me.pipe_fd, &message_buffer, sizeof(Message));
-			printf("\n[%s] %s\n", message_buffer.client.pseudo, message_buffer.message);	
-		}
-	}
-
+	int byte_read = 0;
 	while (1)
    	{
-		message_buffer.client = me;
-		message_buffer.command = MESSAGE;
-   		fgets(message_buffer.message, STRING_MAX_SIZE, stdin);
+		byte_read = read(me.pipe_fd, &message_buffer, sizeof(Message));
+		if (!byte_read || byte_read == EOF)
+			continue;
 
-		write(server_pipe_fd, &message_buffer, sizeof(Message));
+		printf("%s\n", message_buffer.message);
 	}
 
 	return 0;
@@ -131,8 +116,6 @@ void deconnectServer()
 void sigintHandler(int signum)
 {
 	deconnectServer();
-	kill(reader, SIGINT);
-	wait(NULL);
 	exit(0);
 }
 

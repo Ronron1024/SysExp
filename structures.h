@@ -9,7 +9,8 @@ typedef enum COMMAND
 {
 	CONNECTION,
 	MESSAGE,
-	DECONNECTION
+	DECONNECTION,
+	START
 } COMMAND;
 
 typedef struct Client

@@ -5,6 +5,7 @@
 #include <sys/signal.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <time.h>
 #include <unistd.h>
 #include <sys/wait.h>
 
@@ -12,8 +13,11 @@
 #include "structures.h"
 
 void sigintHandler(int);
+void sigusr1Handler(int);
+void sigusr2Handler(int);
 
 void serverMenu();
+void startCountdown(int);
 
 int createServerPipe();
 void writeServerInfo();
@@ -24,6 +28,7 @@ void handleDeconnection(Client*, Client*, int* connected_clients);
 // Server management variables
 int server_pipe_fd = 0; 
 pid_t server_menu_pid = 0;
+int start_game = 0;
 
 // Clients management variables
 int connected_clients = 0;
@@ -31,8 +36,10 @@ Client clients[SERVER_MAX_CLIENTS];
 
 int main()
 {
-	// Register SIGINT
+	// Register signals
 	signal(SIGINT, sigintHandler);
+	signal(SIGUSR1, sigusr1Handler);
+	signal(SIGUSR2, sigusr2Handler);
 
 	// Create server resources
 	server_pipe_fd = createServerPipe();
@@ -49,7 +56,7 @@ int main()
 	Message message_buffer;
 
 	int byte_read = 0;
-	while (1)
+	while (!start_game)
 	{	
 		// Wait for a message in server pipe
 		byte_read = read(server_pipe_fd, &message_buffer, sizeof(Message));
@@ -58,6 +65,17 @@ int main()
 		
 		handleMessage(&message_buffer, clients, &connected_clients);
 	}
+
+	// Game init
+	printf("GAME START\n");
+	startCountdown(GAME_TIME_LIMIT);
+
+	while (start_game)
+	{
+		
+	}
+
+	printf("GAME END\n");
 
 	return 0;	
 }
@@ -75,6 +93,16 @@ void sigintHandler(int signum)
 
 	wait(NULL);
 	exit(0);
+}
+
+void sigusr1Handler(int signum)
+{
+	start_game = 1;
+}
+
+void sigusr2Handler(int signum)
+{
+	start_game = 0;
 }
 
 void serverMenu()
@@ -97,7 +125,8 @@ void serverMenu()
 
 	for (int i = 0; i < SERVER_MENU_WIDTH; i++)
 		printf("=");
-	printf("\n");
+	printf("\n\n");
+	printf("Players :\n");
 
 	int choice = 0;
 	scanf("%d", &choice);
@@ -105,12 +134,40 @@ void serverMenu()
 	switch(choice)
 	{
 		case 1:
-			printf("Start game\n");
+			kill(getppid(), SIGUSR1);
+
+			// Send start message to exit main process reading
+			Client server = {"SERVER", -1, server_pipe_fd, getpid()};
+			Message start_message = {server, START, "START"};
+			write(server.pipe_fd, &start_message, sizeof(Message));
+
 			break;
 		case 2:
 			kill(getppid(), SIGINT);
-			exit(0);
 			break;
+	}
+
+	exit(0);
+}
+
+void startCountdown(int seconds)
+{
+	pid_t countdown_pid = fork();
+	if (!countdown_pid)
+	{
+		time_t time1, time2;
+		time1 = time(NULL);
+
+		while (1)
+		{
+			sleep(1);
+			time2 = time(NULL);
+			if (difftime(time2, time1) >= seconds)
+			{
+				kill(getppid(), SIGUSR2);
+				exit(0);
+			}
+		}
 	}
 }
 
@@ -175,8 +232,7 @@ void handleConnection(Client* client, Client* clients, int* connected_clients)
 	*connected_clients = *connected_clients + 1;
 
 	// Print information
-	printf("%s has connected.\n", client->pseudo);
-	printf("\tNumber of client connected : %d\n", *connected_clients);
+	printf("\t%s\n", client->pseudo);
 }
 
 void handleDeconnection(Client* client, Client* clients, int* connected_clients)
