@@ -45,8 +45,9 @@ int main()
 
 int createServerPipe()
 {
+	unlink(SERVER_PIPE_NAME);
 	mkfifo(SERVER_PIPE_NAME, 0666);
-	return open(SERVER_PIPE_NAME, O_RDONLY);
+	return open(SERVER_PIPE_NAME, O_RDWR);
 }
 
 void writeServerInfo() {
@@ -111,16 +112,24 @@ void handleDeconnection(Client* client, Client* clients, int* connected_clients)
 {
 	close(client->pipe_fd);
 
-	// MUST CHECK
+	// Must reopen server pipe, otherwise can't read anymore
 	close(server_pipe_fd);
-	server_pipe_fd = open(SERVER_PIPE_NAME, O_RDONLY);
+	server_pipe_fd = open(SERVER_PIPE_NAME, O_RDWR);
 
 	for (int i = 0; i < *connected_clients; i++)
 	{
 		if (clients[i].PID == client->PID)
 		{
-			for (int j = i; j < *connected_clients - 1; j++)
-				clients[j] = clients[j+1];
+			for (int j = i; j < *connected_clients; j++)
+			{
+				if (j != SERVER_MAX_CLIENTS) // Prevent seg fault
+					clients[j] = clients[j+1];
+				else
+				{
+					Client null_client;
+					clients[j] = null_client;
+				}
+			}
 		}
 	}
 	*connected_clients = *connected_clients - 1;
