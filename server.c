@@ -2,226 +2,209 @@
 #include <stdlib.h>
 #include <string.h>
 #include <fcntl.h>
+#include <sys/signal.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
 #include <sys/wait.h>
 
-#define SERVER_PIPE_NAME "myfifo"
-#define SERVER_INFO "servinfo"
-#define BDD_PATH "ressource/database.csv"
-#define NUMBER_CLIENT_MAX 64
-#define CHAR_NAME_MAX 16
-#define NAME_PIPE_CLIENT 8
+#include "server_config.h"
+#include "structures.h"
 
-typedef struct client 
-{ 
-	char name[CHAR_NAME_MAX];
-	int is_spy;
-	int token; //pid de celui qui interroge
-	char pid[NAME_PIPE_CLIENT];
-	int vote;
-} CLIENT;
+void sigintHandler(int);
 
-int createServerPipe(char *);
-void writeServerInfo(char * );
-void searchAnswer(char*, char*, char*);
+void serverMenu();
 
-void printClient(CLIENT);
+int createServerPipe();
+void writeServerInfo();
+void handleMessage(Message*, Client*, int* connected_clients);
+void handleConnection(Client*, Client*, int* connected_clients);
+void handleDeconnection(Client*, Client*, int* connected_clients);
 
-int main(){
+// Server management variables
+int server_pipe_fd = 0; 
+pid_t server_menu_pid = 0;
 
-	CLIENT Client[NUMBER_CLIENT_MAX];
-	CLIENT *Player;
+// Clients management variables
+int connected_clients = 0;
+Client clients[SERVER_MAX_CLIENTS];
 
-	int nbclient = 0;
-	int go =0;
-	int choix = 0;
+int main()
+{
+	// Register SIGINT
+	signal(SIGINT, sigintHandler);
 
-	int server_pipe_fd = createServerPipe(SERVER_PIPE_NAME);
-	if (server_pipe_fd == -1)
+	// Create server resources
+	server_pipe_fd = createServerPipe();
+	writeServerInfo();
+
+	// Server menu
+	server_menu_pid = fork();
+	if (!server_menu_pid)
 	{
-		printf(" Err open pipe: server_pipe_fd\n");
-	} 
+		serverMenu();
+	}
 
-	writeServerInfo(SERVER_INFO);
-    pid_t client_handler_pid = 0;
-	int client_pipe_fd = 0;
+	// Server pipes buffer
+	Message message_buffer;
 
-	char client_pid[64] = {0};
-
-	/*Menu*/
-
-	pid_t menu= fork();
-	
-	if(!menu)
+	int byte_read = 0;
+	while (1)
 	{	
-		printf("---------------\n");
-		printf("|1-Start Game |\n");
-		printf("|2-Stop Server|\n");
-		printf("|Choix?       |\n");
-		printf("---------------\n");
-
-		while (choix == 0)
-		{
-
-			switch ( getchar() )
-			{
-
-				case '1':
-					printf("Choix 1\n");
-					choix = 1;
-					//Random word/spy/token
-					go = 1;					
-					break;
-
-				case '2':
-					printf("choix 2\n");
-					choix = 2;
-					//Kill child
-					break;
-
-				defaut:
-					break;
-			}
-		}
-
-		exit(0);
-	}
-	
-	/*End Menu*/
-	while(1)
-	{
-		if (go)//Game loop
-		{
-			//Init game envoie word et et spy
-			//Envoie la liste des client à celui qui à le token pour parler
-			//Question client vers client
-			//Affichage reponse sur serveur
-			//
-		}
-
-		if ( read(server_pipe_fd,&Client[nbclient],sizeof(CLIENT)) == -1 )
-		{
-			printf("Err read server pipe\n");
-		}
-
-		printClient( Client[nbclient] );
-		open(Client[nbclient].pid, O_RDWR);
-
-
-		/*Communication à plusieur pas necessaire - fonction tchat à part
- 
-		client_handler_pid = fork();
-
-		if (!client_handler_pid) //Si c' est le fils ( = 0)
-		{
-			client_pipe_fd = open(Client[nbclient].pid, O_RDWR); //buf = pid  client qui est aussi le nom du pipe avec lequel on communiquera au client
-			printf("CLIENT PIPE FD : %d\n",client_pipe_fd);
-			char message[64] = {0};
-			char answer[64]={0};
-			int byte_read = 0;
-
-			CLIENT client_buffer;
-			while (1)
-			{
-				printf("Press enter to send player list."); getchar();
-				write(client_pipe_fd, &Client[nbclient], sizeof(CLIENT));
-				usleep(100);
-				read(client_pipe_fd, &client_buffer, sizeof(CLIENT));
-				printClient(client_buffer);
-            		}
-			close(client_pipe_fd);
-			exit(0);
-		}
-		*/
-		nbclient++;
+		// Wait for a message in server pipe
+		byte_read = read(server_pipe_fd, &message_buffer, sizeof(Message));
+		if (!byte_read || byte_read == EOF)
+			continue;
+		
+		handleMessage(&message_buffer, clients, &connected_clients);
 	}
 
-	printf("PAPA est la!! wait = %d\n", wait(NULL));
-	while ( wait(NULL) != -1);
-	printf("BYE");
-
-	close(server_pipe_fd);
-	unlink(SERVER_PIPE_NAME);
 	return 0;	
 }
 
-int createServerPipe(char * myfifo)
+void sigintHandler(int signum)
 {
+	for (int i = 0; i < connected_clients; i++)
+	{
+		close(clients[i].pipe_fd);
+		kill(clients[i].PID, SIGINT);
+	}
 
-    // FIFO file path
+	close(server_pipe_fd);
+	unlink(SERVER_PIPE_NAME);
 
-    // Creating the named file(FIFO)
-    // mkfifo(<pathname>,<permission>)
-    unlink(myfifo);
-    mkfifo(myfifo, 0666);
-
-    
-    return open(myfifo,O_RDWR);
+	wait(NULL);
+	exit(0);
 }
 
-void writeServerInfo(char * info_file_path) {
-	FILE* fichier = NULL;// on cree un truc la
+void serverMenu()
+{
+	for (int i = 0; i < SERVER_MENU_WIDTH; i++)
+		printf("=");
+	printf("\n");
 
-	pid_t pid = getpid ();
+	char* choice1_label = "| 1. Start game";
+	printf("%s", choice1_label);
+	for (int i = 0; i < SERVER_MENU_WIDTH - strlen(choice1_label) - 1; i++)
+		printf(" ");
+	printf("|\n");
 
-	printf ("PID: %d\n", pid);
+	char* choice2_label = "| 2. Stop server";
+	printf("%s", choice2_label);
+	for (int i = 0; i < SERVER_MENU_WIDTH - strlen(choice2_label) - 1; i++)
+		printf(" ");
+	printf("|\n");
 
-	
+	for (int i = 0; i < SERVER_MENU_WIDTH; i++)
+		printf("=");
+	printf("\n");
 
-	fichier = fopen(info_file_path, "w+");// on ouvre ou cree le fichier
-	if (fichier != NULL)
+	int choice = 0;
+	scanf("%d", &choice);
+
+	switch(choice)
 	{
-		printf("Ouverture ok\n");
-		fprintf (fichier,"%s",SERVER_PIPE_NAME);
+		case 1:
+			printf("Start game\n");
+			break;
+		case 2:
+			kill(getppid(), SIGINT);
+			exit(0);
+			break;
+	}
+}
+
+int createServerPipe()
+{
+	unlink(SERVER_PIPE_NAME);
+	mkfifo(SERVER_PIPE_NAME, 0666);
+	return open(SERVER_PIPE_NAME, O_RDWR);
+}
+
+void writeServerInfo() {
+	FILE* info_file = fopen(SERVER_INFO_FILE_PATH, "w");
+	
+	if (info_file != NULL)
+	{
+		fprintf(info_file, "%s", SERVER_PIPE_NAME);
+		fclose(info_file);
+		printf("Successfully created %s file.\n", SERVER_INFO_FILE_PATH);
+		printf("\tServer pipe name is : %s\n\n", SERVER_PIPE_NAME);
 	} 
 	else 
 	{
-        	printf("Impossible d'ouvrir le fichier test.txt");
+        	fprintf(stderr, "Error while creating %s file.\n", SERVER_INFO_FILE_PATH);
     	}
-
-
-	fclose(fichier);
 }
 
-void searchAnswer(char* question, char* answer, char* BDD)
+void handleMessage(Message* message, Client* clients, int* connected_clients)
 {
-
-	
-	char lecteur[128];
-	
-	FILE* fd = fopen(BDD, "r");
-	
-	if(fd == NULL)
+	switch (message->command)
 	{
-		printf("[ERROR] Can't open %s\n", BDD);
-		exit(1);
-	}
-
-	int next_line_is_answer = 0;	
-	int byte_read = 0;
-	while(fgets(lecteur, sizeof lecteur, fd) != NULL)
-	{
-		byte_read = strlen(lecteur);
-		lecteur[byte_read] = 0; // remove trailing \n
-		
-		if (next_line_is_answer)
-		{
-			strcpy(answer, lecteur);
+		case CONNECTION:
+			handleConnection(&message->client, clients, connected_clients);
 			break;
-		}
-	
-		if (strcmp(question,lecteur) == 0)
-		{
-			next_line_is_answer = 1;
-		}
-		
+
+		case DECONNECTION:
+			handleDeconnection(&message->client, clients, connected_clients);
+			break;
+
+		case MESSAGE:
+			// MUST MAKE A FUNCTION
+			printf("[%s] %s\n", message->client.pseudo, message->message);
+			for (int i = 0; i < *connected_clients; i++)
+			{
+				if (clients[i].PID != message->client.PID)
+				{
+					write(clients[i].pipe_fd, message, sizeof(Message));
+				}
+			}
+			break;
 	}
 }
 
-void printClient(CLIENT client)
+void handleConnection(Client* client, Client* clients, int* connected_clients)
 {
-	printf("Pseudo : %s\n", client.name);
-	printf("Is spy : %s\n", client.is_spy ? "True" : "False");
+	// Open client pipe
+	char client_pipe_name[STRING_MAX_SIZE] = {0};
+	sprintf(client_pipe_name, "%d", client->PID);
+	client->pipe_fd = open(client_pipe_name, O_WRONLY);
+
+	// Update client list
+	clients[*connected_clients] = *client;
+	*connected_clients = *connected_clients + 1;
+
+	// Print information
+	printf("%s has connected.\n", client->pseudo);
+	printf("\tNumber of client connected : %d\n", *connected_clients);
+}
+
+void handleDeconnection(Client* client, Client* clients, int* connected_clients)
+{
+	close(client->pipe_fd);
+
+	// Must reopen server pipe, otherwise can't read anymore
+	close(server_pipe_fd);
+	server_pipe_fd = open(SERVER_PIPE_NAME, O_RDWR);
+
+	for (int i = 0; i < *connected_clients; i++)
+	{
+		if (clients[i].PID == client->PID)
+		{
+			for (int j = i; j < *connected_clients; j++)
+			{
+				if (j != SERVER_MAX_CLIENTS) // Prevent seg fault
+					clients[j] = clients[j+1];
+				else
+				{
+					Client null_client;
+					clients[j] = null_client;
+				}
+			}
+		}
+	}
+	*connected_clients = *connected_clients - 1;
+
+	printf("%s has disconnected.\n", client->pseudo);
+	printf("\tNumber of client connected : %d\n", *connected_clients);
 }
