@@ -147,6 +147,15 @@ void handleMessage(Message message)
 			strcpy(answer_message.message, word);
 			write(server_pipe_fd, &answer_message, sizeof(Message));
 			break;
+
+		case ASK_TO:
+
+			readPlayerList(message.data, player_list);
+			//Client player2_list[SERVER_MAX_CLIENTS];
+			//printf("je suis la qd meme\n");
+			//readPlayerList(2, player2_list);
+			break;
+
 	}
 }
 

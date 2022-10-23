@@ -47,6 +47,9 @@ void PickRandom(char* info_file_path ,int taille, char* buf);
 int chooseRandomInt(int connected_client);
 int countlines(char *filename);
 
+
+void sendPlayerListTo(Client addressee);
+
 int main()
 {
 	srand( time( NULL ) );
@@ -92,7 +95,7 @@ int main()
 	int numberWord = countlines(PATH_BDD_WORD);
 	PickRandom(PATH_BDD_WORD,numberWord,word);
 
-	//printf("The word is = %s\n", word);
+	printf("The word is = %s\n", word);
 	
 	int firstPlayer = chooseRandomInt(connected_clients);
 	while( clients[firstPlayer].is_spy == 1){
@@ -102,12 +105,19 @@ int main()
 	pid_t token = clients[firstPlayer].PID;
 
 	printf("token du first player = %d\n",token);
+	printf("FirstPlayer= %s\n", clients[firstPlayer].pseudo);
 
 	startCountdown(GAME_TIME_LIMIT);
 
-	while (start_game)
+	sleep(5);
+
+	//while (start_game)
+	while(1)
 	{
-	 //Listes de joueurs
+		printf("Getpid %d\n",getpid());
+	 	sendPlayerListTo(clients[firstPlayer]);
+		sleep(1120);
+		//Listes de joueurs
 	 //choix du jour pour la question
 	 //Envoie question
 	 //cght token
@@ -494,17 +504,35 @@ int countlines(char *filename)
 	{	
 		while( c != '\n')
 		{
-			printf("le c = %c\n",c);
-			usleep(500);
 			c = fgetc(fp);
 		}
 	c = fgetc(fp);
 	lines++; 
 	}
 
-	printf("Line = %d\n",lines);
+	printf("Nb line = %d\n",lines);
 
 	return (chooseRandomInt(lines) + 1);
 	
 	//size_t fread( void * buffer, size_t blocSize, size_t blocCount, FILE * stream );  
 }
+
+void sendPlayerListTo(Client addressee)
+{
+	Message message_buffer;
+	message_buffer.command = ASK_TO;
+
+	printf("1 ere\n");
+
+	for (int i = 0; i < connected_clients; i++)
+	{
+		if (addressee.PID != clients[i].PID)
+		{
+			message_buffer.from = clients[i];
+			message_buffer.to = addressee;
+			write(addressee.pipe_fd, &message_buffer, sizeof(Message));
+			printf("How many/ name = %s\n",clients[i].pseudo);
+		}
+	}
+}
+

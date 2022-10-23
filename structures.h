@@ -12,7 +12,8 @@ typedef enum COMMAND
 	DECONNECTION,
 	START,
 	VOTE,
-	ASK
+	ASK,
+	ASK_TO
 } COMMAND;
 
 typedef enum GAME_RESULT
