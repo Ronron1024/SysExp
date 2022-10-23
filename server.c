@@ -44,7 +44,9 @@ Client clients[SERVER_MAX_CLIENTS];
 
 //Random
 char* PickRandom(char* info_file_path ,int taille);
-int chooseRandomSpy(int connected_client);
+int chooseRandomInt(int connected_client);
+int countlines(char *filename);
+
 
 
 int main()
@@ -80,8 +82,11 @@ int main()
 	}
 
 	// Game init
-	Client spy = clients[ chooseRandomSpy(connected_clients) ];
-	clients[ chooseRandomSpy(connected_clients )].is_spy = 1;
+	int randomSpy = chooseRandomInt(connected_clients);
+	Client spy = clients[randomSpy];
+	clients[randomSpy].is_spy = 1;
+
+	printf("Hello word = %d\n",countlines(PATH_BDD_WORD));
 
 	char* word = "word";
 	pid_t token = clients[1].PID;
@@ -449,8 +454,33 @@ char* PickRandom(char* info_file_path ,int taille){
 	return buf;
 }
 
-int chooseRandomSpy(int connected_clients)
+int chooseRandomInt(int connected_clients)
 {
 	srand( time( NULL ) );
 	return rand() % connected_clients;
+}
+
+int countlines(char *filename)
+{
+
+  // count the number of lines in the file called filename
+
+  	FILE *fp = fopen(filename,"r");
+	
+	//char bufferLine[STRING_MAX_SIZE];
+	char c=0;
+  	int lines=0;
+
+	while (c != EOF)
+	{
+		while( fread(&c, sizeof(char), 1, fp) != '\n')
+		{
+			c++;
+		}
+	lines++; 
+	}
+
+	return chooseRandomInt(lines);
+	
+	//size_t fread( void * buffer, size_t blocSize, size_t blocCount, FILE * stream );  
 }
