@@ -33,6 +33,7 @@ void askWord(Client);
 GAME_RESULT getResult(Client, Client, char*, char*);
 
 // Server management variables
+pid_t tchat_server_pid = 0;
 int server_pipe_fd = 0; 
 pid_t server_menu_pid = 0;
 int start_game = 0;
@@ -43,6 +44,12 @@ Client clients[SERVER_MAX_CLIENTS];
 
 int main()
 {
+	// Start chat server
+	tchat_server_pid = fork();
+	if (!tchat_server_pid)
+		execl("/usr/bin/gnome-terminal", "/usr/bin/gnome-terminal", "--", "./modules/tchat/server", NULL);
+	wait(NULL); // launched terminal exit immediatly, tchat server is not a child
+
 	// Register signals
 	signal(SIGINT, sigintHandler);
 	signal(SIGUSR1, sigusr1Handler);
@@ -148,18 +155,20 @@ void sigintHandler(int signum)
 	close(server_pipe_fd);
 	unlink(SERVER_PIPE_NAME);
 
-	wait(NULL);
+	while (wait(NULL) != -1); // Wait for all child
 	exit(0);
 }
 
 void sigusr1Handler(int signum)
 {
 	start_game = 1;
+	wait(NULL); // wait for server menu child
 }
 
 void sigusr2Handler(int signum)
 {
 	start_game = 0;
+	wait(NULL); // wait for countdown child
 }
 
 void serverMenu()
