@@ -147,6 +147,8 @@ void handleMessage(Message message)
 			strcpy(answer_message.message, word);
 			write(server_pipe_fd, &answer_message, sizeof(Message));
 			break;
+
+		default:
 	}
 }
 

@@ -274,6 +274,8 @@ void handleMessage(Message* message, Client* clients, int* connected_clients)
 				}
 			}
 			break;
+		
+		default:
 	}
 }
 
@@ -310,7 +312,7 @@ void handleDeconnection(Client* client, Client* clients, int* connected_clients)
 					clients[j] = clients[j+1];
 				else
 				{
-					Client null_client;
+					Client null_client = {"NOBODY", -1, -1, 0, 0};
 					clients[j] = null_client;
 				}
 			}
