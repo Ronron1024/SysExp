@@ -38,7 +38,7 @@ int main ()
 	me.pipe_fd = createClientPipe();
 	me.PID = getpid();
 	printf("Pseudo : ");
-	fgets(me.pseudo, STRING_MAX_SIZE, stdin);
+	fgets(me.pseudo, PSEUDO_MAX_SIZE, stdin);
 	trimCarriageReturn(me.pseudo);
 
 	// Connect to server
@@ -134,6 +134,19 @@ void handleMessage(Message message)
 			};
 			write(server_pipe_fd, &vote_message, sizeof(Message));
 			break;
+		
+		case ASK:
+			printf("%s\n", message.message);
+			char word[STRING_MAX_SIZE] = {0};
+			scanf("%s", word);
+			Message answer_message = {
+				me,
+				me,
+				MESSAGE
+			};
+			strcpy(answer_message.message, word);
+			write(server_pipe_fd, &answer_message, sizeof(Message));
+			break;
 	}
 }
 
@@ -152,11 +165,11 @@ Client chosePlayer(int n, Client* player_list)
 	int choice = 0;
 	for (int i = 0; i < n; i++)
 	{
-		printf("%d. %s\n", i, player_list[i].pseudo);
+		printf("%d. %s\n", i+1, player_list[i].pseudo);
 	}
 	scanf("%d", &choice);
 
-	return player_list[choice];
+	return player_list[choice-1];
 }
 
 void sigintHandler(int signum)

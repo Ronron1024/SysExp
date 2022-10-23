@@ -11,15 +11,24 @@ typedef enum COMMAND
 	MESSAGE,
 	DECONNECTION,
 	START,
-	VOTE
+	VOTE,
+	ASK
 } COMMAND;
+
+typedef enum GAME_RESULT
+{
+	PLAYERS,
+	SPY,
+	PAR
+} GAME_RESULT;
 
 typedef struct Client
 {
-	char pseudo[STRING_MAX_SIZE];
+	char pseudo[PSEUDO_MAX_SIZE];
 	int is_spy;
 	int pipe_fd;
 	pid_t PID;
+	int vote;
 } Client;
 
 typedef struct Message

@@ -8,6 +8,7 @@
 #define GAME_TIME_LIMIT 0
 
 #define STRING_MAX_SIZE 64 
+#define PSEUDO_MAX_SIZE 32
 
 #define SERVER_MENU_WIDTH 32
 

@@ -27,6 +27,10 @@ void handleDeconnection(Client*, Client*, int* connected_clients);
 
 void sendVoteMessage();
 void sendPlayerList();
+void updateVote(Client);
+Client calcVote();
+void askWord(Client);
+GAME_RESULT getResult(Client, Client, char*, char*);
 
 // Server management variables
 int server_pipe_fd = 0; 
@@ -72,6 +76,7 @@ int main()
 	// Game init
 	Client spy = clients[0];
 	clients[0].is_spy = 1;
+
 	char* word = "word";
 	pid_t token = clients[1].PID;
 
@@ -93,9 +98,40 @@ int main()
 		if (message_buffer.command == VOTE)
 		{
 			printf("%s has voted %s\n", message_buffer.from.pseudo, message_buffer.to.pseudo);
+			updateVote(message_buffer.to);
 			has_voted++;
 		}	
 	}
+
+	// Print vote result
+	Client voted = calcVote();
+	printf("\nVote result :  %s\n", voted.pseudo);
+	printf("The spy was %s\n", spy.pseudo);
+
+	// Ask the spy for word
+	askWord(spy);
+	read(server_pipe_fd, &message_buffer, sizeof(Message));
+	char spy_word[STRING_MAX_SIZE] = {0};
+	strcpy(spy_word, message_buffer.message);
+
+	printf("%s says the word was %s.\n", spy.pseudo, spy_word);
+	printf("\nThe word was %s\n", word);
+
+	// Game result
+	GAME_RESULT result = getResult(spy, voted, word, spy_word);
+	switch (result)
+	{
+		case SPY:
+			printf("The spy win !\n");
+			break;
+		case PLAYERS:
+			printf("Players win !\n");
+			break;
+		case PAR:
+			printf("Nobody win ...\n");
+			break;
+	}
+		
 	
 	kill(getpid(), SIGINT); // EXIT BY SENDING SIGINT
 	return 0;	
@@ -326,4 +362,54 @@ void sendPlayerList()
 			}
 		}
 	}
+}
+
+void updateVote(Client is_voted)
+{
+	for (int i = 0; i < connected_clients; i++)
+	{
+		if (clients[i].PID == is_voted.PID)
+			clients[i].vote++;
+	}
+}
+
+Client calcVote()
+{
+	Client voted = clients[0];
+	for (int i = 0; i < connected_clients; i++)
+	{
+		if (clients[i].vote > voted.vote)
+			voted = clients[i];
+	}
+
+	return voted;
+}
+
+void askWord(Client client)
+{
+	Client server = {
+		"SERVER",
+		-1,
+		server_pipe_fd,
+		getpid()
+	};
+	Message ask_message = {
+		server,
+		client,
+		ASK
+	};
+	sprintf(ask_message.message, "%s, what is the word ?", client.pseudo);
+	printf("\n%s\n", ask_message.message);
+
+	write(client.pipe_fd, &ask_message, sizeof(Message));
+}
+
+GAME_RESULT getResult(Client spy, Client voted, char* word, char* spy_word)
+{
+	if (strcmp(word, spy_word) == 0)
+		return SPY;
+	else if (spy.PID == voted.PID)
+		return PLAYERS;
+	else
+		return PAR;
 }
