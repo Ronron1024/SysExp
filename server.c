@@ -42,8 +42,19 @@ int start_game = 0;
 int connected_clients = 0;
 Client clients[SERVER_MAX_CLIENTS];
 
+
+//Random
+void PickRandom(char* info_file_path ,int taille, char* buf);
+int chooseRandomInt(int connected_client);
+int countlines(char *filename);
+
+
+void sendPlayerListTo(Client addressee);
+
 int main()
 {
+	srand( time( NULL ) );
+
 	// Start chat server
 	tchat_server_pid = fork();
 	if (!tchat_server_pid)
@@ -81,17 +92,43 @@ int main()
 	}
 
 	// Game init
-	Client spy = clients[0];
-	clients[0].is_spy = 1;
+	int randomSpy = chooseRandomInt(connected_clients);
+	Client spy = clients[randomSpy];
+	clients[randomSpy].is_spy = 1;
 
-	char* word = "word";
-	pid_t token = clients[1].PID;
+	//printf("Le randomSpy is %d\n",randomSpy);
+
+	char word[STRING_MAX_SIZE];
+	int numberWord = countlines(PATH_BDD_WORD);
+	PickRandom(PATH_BDD_WORD,numberWord,word);
+
+	printf("The word is = %s\n", word);
+	
+	int firstPlayer = chooseRandomInt(connected_clients);
+	while( clients[firstPlayer].is_spy == 1){
+		firstPlayer = chooseRandomInt(connected_clients);
+	}
+
+	pid_t token = clients[firstPlayer].PID;
+
+	printf("token du first player = %d\n",token);
+	printf("FirstPlayer= %s\n", clients[firstPlayer].pseudo);
 
 	startCountdown(GAME_TIME_LIMIT);
 
-	while (start_game)
+	sleep(5);
+
+	//while (start_game)
+	while(1)
 	{
-		
+		printf("Getpid %d\n",getpid());
+	 	sendPlayerListTo(clients[firstPlayer]);
+		sleep(1120);
+		//Listes de joueurs
+	 //choix du jour pour la question
+	 //Envoie question
+	 //cght token
+	 //reponse
 	}
 
 	// END GAME
@@ -424,3 +461,89 @@ GAME_RESULT getResult(Client spy, Client voted, char* word, char* spy_word)
 	else
 		return PAR;
 }
+
+
+
+
+void PickRandom(char* info_file_path ,int taille, char* buf){
+
+    	int dp=0;
+    	int desc=0;
+    	srand(time(NULL));
+
+    	int i ;
+    	taille = taille - rand() % (taille);
+	printf("random: %d\n", taille);
+
+	FILE* file = fopen(info_file_path, "r");   // on ouvre le fichier en lecture
+	
+	if(file == NULL)
+		printf("Err acces bdd_word\n");
+
+	for (i=0 ; i<taille; i++)     // cette boucle nous permet d'avancer jusqu'a la ligne souhait�
+	{                                           //
+		fgets(buf, sizeof(char)*STRING_MAX_SIZE, file); //
+	}
+
+//	printf("pipe is: %s\n", buf);
+//	dp=open(buf,O_WRONLY);
+//	close(desc);
+}
+
+int chooseRandomInt(int connected_clients)
+{
+	return (rand() % connected_clients);
+}
+
+int countlines(char *filename)
+{
+
+  // count the number of lines in the file called filename
+
+  	FILE *fp = fopen(filename,"r");
+
+	if (fp == NULL)
+		printf("Err acces file\n");
+	
+	//char bufferLine[STRING_MAX_SIZE];
+	char c = '\0';
+  	int lines = 0;
+
+	fseek(fp,0,SEEK_SET);
+
+	while (c != EOF)
+	{	
+		while( c != '\n')
+		{
+			c = fgetc(fp);
+		}
+	c = fgetc(fp);
+	lines++; 
+	}
+
+	printf("Nb line = %d\n",lines);
+
+	return (chooseRandomInt(lines) + 1);
+	
+	//size_t fread( void * buffer, size_t blocSize, size_t blocCount, FILE * stream );  
+}
+
+void sendPlayerListTo(Client addressee)
+{
+	Message message_buffer;
+	message_buffer.command = ASK_TO;
+
+	printf("1 ere\n");
+
+	for (int i = 0; i < connected_clients; i++)
+	{
+		if (addressee.PID != clients[i].PID)
+		{
+			message_buffer.from = clients[i];
+			message_buffer.to = addressee;
+			write(addressee.pipe_fd, &message_buffer, sizeof(Message));
+			printf("How many/ name = %s\n",clients[i].pseudo);
+		}
+	}
+}
+
