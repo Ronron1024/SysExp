@@ -12,6 +12,6 @@
 
 #define SERVER_MENU_WIDTH 32
 
-//#define PATH_BDD_WORD "ressource/bdd_word"
+#define PATH_BDD_WORD "ressource/bdd_word"
 
 #endif

@@ -124,8 +124,7 @@ void handleMessage(Message message)
 	switch (message.command)
 	{
 		case VOTE:
-			//Client player_list[SERVER_MAX_CLIENTS];
-			Client player_list[12];
+			Client player_list[SERVER_MAX_CLIENTS];
 			readPlayerList(message.data, player_list);
 			Client voted = chosePlayer(message.data, player_list);
 			Message vote_message = {

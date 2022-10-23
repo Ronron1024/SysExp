@@ -43,7 +43,7 @@ Client clients[SERVER_MAX_CLIENTS];
 
 
 //Random
-char* PickRandom(char* info_file_path ,int taille);
+void PickRandom(char* info_file_path ,int taille, char* buf);
 int chooseRandomInt(int connected_client);
 int countlines(char *filename);
 
@@ -86,16 +86,34 @@ int main()
 	Client spy = clients[randomSpy];
 	clients[randomSpy].is_spy = 1;
 
-	printf("Hello word = %d\n",countlines(PATH_BDD_WORD));
+	printf("Le randomSpy is %d\n",randomSpy);
 
-	char* word = "word";
-	pid_t token = clients[1].PID;
+	char word[STRING_MAX_SIZE];
+	int randomLine = countlines(PATH_BDD_WORD);
+	PickRandom(PATH_BDD_WORD,randomLine,word);
+
+	printf("LineRadom = %d\n", randomLine);
+	printf("The word is = %s\n", word);
+
+
+	int firstPlayer = chooseRandomInt(connected_clients);
+	while( clients[firstPlayer].is_spy == 1){
+		firstPlayer = chooseRandomInt(connected_clients);
+	}
+
+	pid_t token = clients[firstPlayer].PID;
+
+	printf("toker du first player = %d\n",token);
 
 	startCountdown(GAME_TIME_LIMIT);
 
 	while (start_game)
 	{
-		
+	 //Listes de joueurs
+	 //choix du jour pour la question
+	 //Envoie question
+	 //cght token
+	 //reponse
 	}
 
 	// END GAME
@@ -428,7 +446,7 @@ GAME_RESULT getResult(Client spy, Client voted, char* word, char* spy_word)
 
 
 
-char* PickRandom(char* info_file_path ,int taille){
+void PickRandom(char* info_file_path ,int taille, char* buf){
 
     	int dp=0;
     	int desc=0;
@@ -440,9 +458,6 @@ char* PickRandom(char* info_file_path ,int taille){
 
 	FILE* file = fopen(info_file_path, "r");   // on ouvre le fichier en lecture
 
-	char buf[STRING_MAX_SIZE];                              //
-
-                                                //
 	for (i=0 ; i<taille; i++)     // cette boucle nous permet d'avancer jusqu'a la ligne souhait�
 	{                                           //
 		fgets(buf, STRING_MAX_SIZE, file); //
@@ -451,7 +466,6 @@ char* PickRandom(char* info_file_path ,int taille){
 	printf("pipe is: %s\n", buf);
 	dp=open(buf,O_WRONLY);
 	close(desc);
-	return buf;
 }
 
 int chooseRandomInt(int connected_clients)
