@@ -41,6 +41,12 @@ int start_game = 0;
 int connected_clients = 0;
 Client clients[SERVER_MAX_CLIENTS];
 
+
+//Random
+char* PickRandom(char* info_file_path ,int taille);
+int chooseRandomSpy(int connected_client);
+
+
 int main()
 {
 	// Register signals
@@ -74,8 +80,8 @@ int main()
 	}
 
 	// Game init
-	Client spy = clients[0];
-	clients[0].is_spy = 1;
+	Client spy = clients[ chooseRandomSpy(connected_clients) ];
+	clients[ chooseRandomSpy(connected_clients )].is_spy = 1;
 
 	char* word = "word";
 	pid_t token = clients[1].PID;
@@ -412,4 +418,39 @@ GAME_RESULT getResult(Client spy, Client voted, char* word, char* spy_word)
 		return PLAYERS;
 	else
 		return PAR;
+}
+
+
+
+
+char* PickRandom(char* info_file_path ,int taille){
+
+    	int dp=0;
+    	int desc=0;
+    	srand(time(NULL));
+
+    	int i ;
+    	taille = rand() % (taille);
+	printf("random: %d\n", taille);
+
+	FILE* file = fopen(info_file_path, "r");   // on ouvre le fichier en lecture
+
+	char buf[STRING_MAX_SIZE];                              //
+
+                                                //
+	for (i=0 ; i<taille; i++)     // cette boucle nous permet d'avancer jusqu'a la ligne souhait�
+	{                                           //
+		fgets(buf, STRING_MAX_SIZE, file); //
+	}
+
+	printf("pipe is: %s\n", buf);
+	dp=open(buf,O_WRONLY);
+	close(desc);
+	return buf;
+}
+
+int chooseRandomSpy(int connected_clients)
+{
+	srand( time( NULL ) );
+	return rand() % connected_clients;
 }
