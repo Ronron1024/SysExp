@@ -45,6 +45,12 @@ int main ()
 	server_pipe_fd = readServerInfo(SERVER_INFO_FILE_PATH);
  	connectServer(server_pipe_fd, me, 0);
 
+	// Start client tchat
+	pid_t tchat_pid = fork();
+	if (!tchat_pid)
+		execl("/usr/bin/gnome-terminal", "/usr/bin/gnome-terminal", "--", "./modules/tchat/client", me.pseudo, NULL);
+	wait(NULL); // Launched terminal exit immediatly, tchat client is not a child
+
 	Message message_buffer;
 	int byte_read = 0;
 	while (1)
@@ -135,7 +141,7 @@ void handleMessage(Message message)
 			write(server_pipe_fd, &vote_message, sizeof(Message));
 			break;
 		
-		case ASK:
+		case ASK_SPY:
 			printf("%s\n", message.message);
 			char word[STRING_MAX_SIZE] = {0};
 			scanf("%s", word);

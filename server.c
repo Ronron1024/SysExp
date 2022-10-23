@@ -407,7 +407,7 @@ void askWord(Client client)
 	Message ask_message = {
 		server,
 		client,
-		ASK
+		ASK_SPY
 	};
 	sprintf(ask_message.message, "%s, what is the word ?", client.pseudo);
 	printf("\n%s\n", ask_message.message);

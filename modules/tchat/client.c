@@ -25,8 +25,15 @@ Client me;
 int server_pipe_fd;
 pid_t reader = 0;
 
-int main ()
+int main (int argc, char** argv)
 {
+	// Secure program
+	if (argc < 2)
+	{
+		printf("This program is not a standalone.\n");
+		exit(0);
+	}
+
 	// Register signal handler
 	signal(SIGINT, sigintHandler);
 
@@ -34,9 +41,7 @@ int main ()
 	me.is_spy = -1;
 	me.pipe_fd = createClientPipe();
 	me.PID = getpid();
-	printf("Pseudo : ");
-	fgets(me.pseudo, STRING_MAX_SIZE, stdin);
-	trimCarriageReturn(me.pseudo);
+	strcpy(me.pseudo, argv[1]);
 
 	// Connect to server
 	server_pipe_fd = readServerInfo(SERVER_INFO_FILE_PATH);
