@@ -127,7 +127,7 @@ h2 {
   }
 
   footer {
-    position: absolute;
+    position: static;
     bottom: 20px;
     width: 100%;
     text-align: center;
@@ -137,5 +137,48 @@ h2 {
 
     
   }
+.principal {
+
+  border-width:1px;
+  border-style:solid;
+  border-color:black;
+}
+.perso {
+
+  border-width:2px;
+  border-style:solid;
+  border-color:black;
+  display: flex;
+  align-items: stretch;
+}
+
+.photo{
+  
+  display: flex;
+  flex-flow: row-reverse nowrap;
+  height: 100%;
+  width: 30%;
+  display: inline-block;
+  padding: 10px;
 
 
+}
+
+.contenu {
+
+  display: flex;
+  flex-flow: row-reverse nowrap;
+  height: 100%;
+  display: inline-block;
+  padding: 10px;
+
+
+}
+.image-ronde{
+  width : 200px; height : 200px;
+  border: none;
+  border-radius : 100px;
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+}
