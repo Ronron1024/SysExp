@@ -47,10 +47,10 @@ void PickRandom(char* info_file_path ,int taille, char* buf);
 int chooseRandomInt(int connected_client);
 int countlines(char *filename);
 
-
-
 int main()
 {
+	srand( time( NULL ) );
+
 	// Register signals
 	signal(SIGINT, sigintHandler);
 	signal(SIGUSR1, sigusr1Handler);
@@ -86,16 +86,14 @@ int main()
 	Client spy = clients[randomSpy];
 	clients[randomSpy].is_spy = 1;
 
-	printf("Le randomSpy is %d\n",randomSpy);
+	//printf("Le randomSpy is %d\n",randomSpy);
 
 	char word[STRING_MAX_SIZE];
-	int randomLine = countlines(PATH_BDD_WORD);
-	PickRandom(PATH_BDD_WORD,randomLine,word);
+	int numberWord = countlines(PATH_BDD_WORD);
+	PickRandom(PATH_BDD_WORD,numberWord,word);
 
-	printf("LineRadom = %d\n", randomLine);
-	printf("The word is = %s\n", word);
-
-
+	//printf("The word is = %s\n", word);
+	
 	int firstPlayer = chooseRandomInt(connected_clients);
 	while( clients[firstPlayer].is_spy == 1){
 		firstPlayer = chooseRandomInt(connected_clients);
@@ -103,7 +101,7 @@ int main()
 
 	pid_t token = clients[firstPlayer].PID;
 
-	printf("toker du first player = %d\n",token);
+	printf("token du first player = %d\n",token);
 
 	startCountdown(GAME_TIME_LIMIT);
 
@@ -453,25 +451,27 @@ void PickRandom(char* info_file_path ,int taille, char* buf){
     	srand(time(NULL));
 
     	int i ;
-    	taille = rand() % (taille);
+    	taille = taille - rand() % (taille);
 	printf("random: %d\n", taille);
 
 	FILE* file = fopen(info_file_path, "r");   // on ouvre le fichier en lecture
+	
+	if(file == NULL)
+		printf("Err acces bdd_word\n");
 
 	for (i=0 ; i<taille; i++)     // cette boucle nous permet d'avancer jusqu'a la ligne souhait�
 	{                                           //
-		fgets(buf, STRING_MAX_SIZE, file); //
+		fgets(buf, sizeof(char)*STRING_MAX_SIZE, file); //
 	}
 
-	printf("pipe is: %s\n", buf);
-	dp=open(buf,O_WRONLY);
-	close(desc);
+//	printf("pipe is: %s\n", buf);
+//	dp=open(buf,O_WRONLY);
+//	close(desc);
 }
 
 int chooseRandomInt(int connected_clients)
 {
-	srand( time( NULL ) );
-	return rand() % connected_clients;
+	return (rand() % connected_clients);
 }
 
 int countlines(char *filename)
@@ -480,21 +480,31 @@ int countlines(char *filename)
   // count the number of lines in the file called filename
 
   	FILE *fp = fopen(filename,"r");
+
+	if (fp == NULL)
+		printf("Err acces file\n");
 	
 	//char bufferLine[STRING_MAX_SIZE];
-	char c=0;
-  	int lines=0;
+	char c = '\0';
+  	int lines = 0;
+
+	fseek(fp,0,SEEK_SET);
 
 	while (c != EOF)
-	{
-		while( fread(&c, sizeof(char), 1, fp) != '\n')
+	{	
+		while( c != '\n')
 		{
-			c++;
+			printf("le c = %c\n",c);
+			usleep(500);
+			c = fgetc(fp);
 		}
+	c = fgetc(fp);
 	lines++; 
 	}
 
-	return chooseRandomInt(lines);
+	printf("Line = %d\n",lines);
+
+	return (chooseRandomInt(lines) + 1);
 	
 	//size_t fread( void * buffer, size_t blocSize, size_t blocCount, FILE * stream );  
 }
