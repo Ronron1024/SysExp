@@ -10,7 +10,8 @@ typedef enum COMMAND
 	CONNECTION,
 	MESSAGE,
 	DECONNECTION,
-	START
+	START,
+	VOTE
 } COMMAND;
 
 typedef struct Client
@@ -23,9 +24,11 @@ typedef struct Client
 
 typedef struct Message
 {
-	Client client;
+	Client from;
+	Client to;
 	COMMAND command;
 	char message[STRING_MAX_SIZE];
+	int data;
 } Message;
 
 #endif

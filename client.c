@@ -11,12 +11,16 @@
 #include "server_config.h"
 #include "structures.h"
 
+void sigintHandler(int signum);
+
 int readServerInfo(char* info_file_path);
 int createClientPipe();
 int connectServer(int server_pipe_fd, Client client, int timeout);
 void deconnectServer();
 
-void sigintHandler(int signum);
+void handleMessage(Message);
+void readPlayerList(int, Client*);
+Client chosePlayer(int, Client*);
 
 void trimCarriageReturn(char*);
 
@@ -30,7 +34,7 @@ int main ()
 	signal(SIGINT, sigintHandler);
 
 	// Get client identity
-	me.is_spy = -1;
+	me.is_spy = 0;
 	me.pipe_fd = createClientPipe();
 	me.PID = getpid();
 	printf("Pseudo : ");
@@ -49,7 +53,7 @@ int main ()
 		if (!byte_read || byte_read == EOF)
 			continue;
 
-		printf("%s\n", message_buffer.message);
+		handleMessage(message_buffer);
 	}
 
 	return 0;
@@ -88,6 +92,7 @@ int connectServer(int server_pipe_fd, Client client, int timeout)
 {
 	Message message = {
 		client,
+		client,
 		CONNECTION,
 		"This is the connection message"
 	};
@@ -100,6 +105,7 @@ void deconnectServer()
 {
 	Message message = {
 		me,
+		me,
 		DECONNECTION,
 		"This is the deconnection message"
 	};
@@ -111,6 +117,46 @@ void deconnectServer()
 	char pipe_name[STRING_MAX_SIZE] = {0};
 	sprintf(pipe_name, "%d", me.PID);
 	unlink(pipe_name);
+}
+
+void handleMessage(Message message)
+{
+	switch (message.command)
+	{
+		case VOTE:
+			Client player_list[SERVER_MAX_CLIENTS];
+			readPlayerList(message.data, player_list);
+			Client voted = chosePlayer(message.data, player_list);
+			Message vote_message = {
+				me,
+				voted,
+				VOTE
+			};
+			write(server_pipe_fd, &vote_message, sizeof(Message));
+			break;
+	}
+}
+
+void readPlayerList(int n, Client* player_list)
+{
+	Message message_buffer;
+	for (int i = 0; i < n; i++)
+	{
+		read(me.pipe_fd, &message_buffer, sizeof(Message));
+		player_list[i] = message_buffer.from;
+	}
+}
+
+Client chosePlayer(int n, Client* player_list)
+{
+	int choice = 0;
+	for (int i = 0; i < n; i++)
+	{
+		printf("%d. %s\n", i, player_list[i].pseudo);
+	}
+	scanf("%d", &choice);
+
+	return player_list[choice];
 }
 
 void sigintHandler(int signum)

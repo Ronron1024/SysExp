@@ -25,6 +25,9 @@ void handleMessage(Message*, Client*, int* connected_clients);
 void handleConnection(Client*, Client*, int* connected_clients);
 void handleDeconnection(Client*, Client*, int* connected_clients);
 
+void sendVoteMessage();
+void sendPlayerList();
+
 // Server management variables
 int server_pipe_fd = 0; 
 pid_t server_menu_pid = 0;
@@ -67,7 +70,11 @@ int main()
 	}
 
 	// Game init
-	printf("GAME START\n");
+	Client spy = clients[0];
+	clients[0].is_spy = 1;
+	char* word = "word";
+	pid_t token = clients[1].PID;
+
 	startCountdown(GAME_TIME_LIMIT);
 
 	while (start_game)
@@ -75,8 +82,22 @@ int main()
 		
 	}
 
-	printf("GAME END\n");
-
+	// END GAME
+	sendVoteMessage();
+	sendPlayerList();
+	int has_voted = 0;
+	while (has_voted < connected_clients)
+	{
+		read(server_pipe_fd, &message_buffer, sizeof(Message));
+		
+		if (message_buffer.command == VOTE)
+		{
+			printf("%s has voted %s\n", message_buffer.from.pseudo, message_buffer.to.pseudo);
+			has_voted++;
+		}	
+	}
+	
+	kill(getpid(), SIGINT); // EXIT BY SENDING SIGINT
 	return 0;	
 }
 
@@ -138,7 +159,7 @@ void serverMenu()
 
 			// Send start message to exit main process reading
 			Client server = {"SERVER", -1, server_pipe_fd, getpid()};
-			Message start_message = {server, START, "START"};
+			Message start_message = {server, server, START, "START"};
 			write(server.pipe_fd, &start_message, sizeof(Message));
 
 			break;
@@ -199,19 +220,19 @@ void handleMessage(Message* message, Client* clients, int* connected_clients)
 	switch (message->command)
 	{
 		case CONNECTION:
-			handleConnection(&message->client, clients, connected_clients);
+			handleConnection(&message->from, clients, connected_clients);
 			break;
 
 		case DECONNECTION:
-			handleDeconnection(&message->client, clients, connected_clients);
+			handleDeconnection(&message->from, clients, connected_clients);
 			break;
 
 		case MESSAGE:
 			// MUST MAKE A FUNCTION
-			printf("[%s] %s\n", message->client.pseudo, message->message);
+			printf("[%s] %s\n", message->from.pseudo, message->message);
 			for (int i = 0; i < *connected_clients; i++)
 			{
-				if (clients[i].PID != message->client.PID)
+				if (clients[i].PID != message->from.PID)
 				{
 					write(clients[i].pipe_fd, message, sizeof(Message));
 				}
@@ -263,4 +284,46 @@ void handleDeconnection(Client* client, Client* clients, int* connected_clients)
 
 	printf("%s has disconnected.\n", client->pseudo);
 	printf("\tNumber of client connected : %d\n", *connected_clients);
+}
+
+void sendVoteMessage()
+{
+	Client server = {
+		"SERVER",
+		-1,
+		server_pipe_fd,
+		getpid()
+	};
+	Message vote_message = {
+		server,
+		server,
+		VOTE,
+		"VOTE",
+		connected_clients - 1 // minus current player
+	};
+
+	for (int i = 0; i < connected_clients; i++)
+	{
+		vote_message.to = clients[i];
+		write(clients[i].pipe_fd, &vote_message, sizeof(Message));
+	}
+}
+
+void sendPlayerList()
+{
+	Message message_buffer;
+	message_buffer.command = MESSAGE;
+
+	for (int i = 0; i < connected_clients; i++)
+	{
+		message_buffer.from = clients[i];
+		for (int j = 0; j < connected_clients; j++)
+		{
+			if (clients[j].PID != clients[i].PID)
+			{
+				message_buffer.to = clients[j];
+				write(clients[j].pipe_fd, &message_buffer, sizeof(Message));
+			}
+		}
+	}
 }
