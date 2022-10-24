@@ -151,10 +151,15 @@ void handleMessage(Message message)
 		case ASK_TO:
 			//printf("je suis la qd meme\n");
 			readPlayerList(message.data, player_list);
-			Client voted2 = chosePlayer(message.data, player_list);
-			//Client player2_list[SERVER_MAX_CLIENTS];
-			//printf("je suis la qd meme\n");
-			//readPlayerList(2, player2_list);
+			Client choosen = chosePlayer(message.data, player_list);
+			Message question = {
+				me,
+				choosen,
+				ASK_TO
+			};
+
+			fgets(question.message,STRING_MAX_SIZE,stdin);
+			write(server_pipe_fd, &question, sizeof(Message));
 			break;
 
 	}
@@ -177,7 +182,7 @@ Client chosePlayer(int n, Client* player_list)
 	{
 		printf("%d. %s\n", i+1, player_list[i].pseudo);
 	}
-	scanf("%d", &choice);
+	scanf("%d ", &choice);
 
 	return player_list[choice-1];
 }
