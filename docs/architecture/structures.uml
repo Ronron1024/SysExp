@@ -1,0 +1,33 @@
+@startuml
+object COMMAND {
+    CONNECTION
+    MESSAGE
+    DECONNECTION
+    START
+    VOTE
+    ASK_SPY
+    ASK
+}
+
+object Client {
+    pseudo: char*
+    is_spy : int
+    pipe_fd : int
+    PID : pid_t
+    vote : int
+}
+note top of Client : structure representing\na client
+
+object Message {
+    from : Client
+    to : Client
+    command : COMMAND
+    message : char*
+    data : int
+}
+note top of Message : structure sent between\nserver & client\nthrough pipes
+
+Message::from *-- Client
+Message::to *-- Client
+Message::command *-- COMMAND
+@enduml
