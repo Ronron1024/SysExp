@@ -121,6 +121,8 @@ int main()
 		read(server_pipe_fd,&message_buffer,sizeof(Message));
 		printf("%s: demande à %s: %s\n",message_buffer.from.pseudo, message_buffer.to.pseudo,message_buffer.message);
 		sendQuestion(message_buffer.to, message_buffer);
+		read(server_pipe_fd, &message_buffer, sizeof(Message));
+		printf("%s %s %s\n",message_buffer.from.pseudo, message_buffer.to.pseudo, message_buffer.message);
 
 		getchar();
 		//Listes de joueurs
