@@ -51,6 +51,8 @@ int countlines(char *filename);
 void sendPlayerListTo(Client addressee);
 void sendAskToMessage(Client addressee);
 void sendQuestion(Client clientTo, Message message);
+Client clientToken(pid_t token);
+
 
 int main()
 {
@@ -116,15 +118,16 @@ int main()
 
 	while (start_game)
 	{
-		sendAskToMessage(clients[firstPlayer]);
-	 	sendPlayerListTo(clients[firstPlayer]);
+		sendAskToMessage(clientToken(token));
+	 	sendPlayerListTo(clientToken(token));
 		read(server_pipe_fd,&message_buffer,sizeof(Message));
 		printf("%s: demande à %s: %s\n",message_buffer.from.pseudo, message_buffer.to.pseudo,message_buffer.message);
 		sendQuestion(message_buffer.to, message_buffer);
 		read(server_pipe_fd, &message_buffer, sizeof(Message));
 		printf("%s %s %s\n",message_buffer.from.pseudo, message_buffer.to.pseudo, message_buffer.message);
+		token = message_buffer.from.PID;
 
-		getchar();
+
 		//Listes de joueurs
 	 //choix du jour pour la question
 	 //Envoie question
@@ -572,4 +575,16 @@ void sendQuestion(Client clientTo, Message message)
 {
 	message.command = ANSWER;
 	write(clientTo.pipe_fd, &message,sizeof(Message));
+}
+
+
+
+Client clientToken(pid_t token)
+{
+	for (int i=0; i<connected_clients; i++)
+	{
+		if( clients[i].PID == token )
+			return clients[i];
+	}
+
 }
