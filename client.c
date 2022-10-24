@@ -172,6 +172,10 @@ void handleMessage(Message message)
 			write(server_pipe_fd,&answer,sizeof(Message));
 			break;
 
+		case IS_SPY:
+			printf("You are the spy\n");
+			break;
+
 	}
 }
 

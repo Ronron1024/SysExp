@@ -93,11 +93,11 @@ int main()
 	Client spy = clients[randomSpy];
 	clients[randomSpy].is_spy = 1;
 
-	printf("Le randomSpy is %d\n",randomSpy);
+	//printf("Le randomSpy is %d\n",randomSpy);
 	//Server envoie spy au spy
-	Message messageSpy;
-	messageSpy.command = IS_SPY;
-	write(clients[randomSpy].pipe_fd,&messageSpy,sizeof(Message));
+	Message spy;
+	spy.command = SPY;
+	write(server_pipe_fd,&spy,sizeof(Message));
 
 	char word[STRING_MAX_SIZE];
 	int numberWord = countlines(PATH_BDD_WORD);
