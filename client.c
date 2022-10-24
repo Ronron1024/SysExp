@@ -161,6 +161,9 @@ void handleMessage(Message message)
 			fgets(question.message,STRING_MAX_SIZE,stdin);
 			write(server_pipe_fd, &question, sizeof(Message));
 			break;
+		case ANSWER:
+			printf("De %s a  %s : %s\n",message.from.pseudo,message.to.pseudo,message.message);
+			break;
 
 	}
 }

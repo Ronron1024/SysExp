@@ -50,6 +50,7 @@ int countlines(char *filename);
 
 void sendPlayerListTo(Client addressee);
 void sendAskToMessage(Client addressee);
+void sendQuestion(Client clientTo, Message message);
 
 int main()
 {
@@ -119,6 +120,8 @@ int main()
 	 	sendPlayerListTo(clients[firstPlayer]);
 		read(server_pipe_fd,&message_buffer,sizeof(Message));
 		printf("%s: demande à %s: %s\n",message_buffer.from.pseudo, message_buffer.to.pseudo,message_buffer.message);
+		sendQuestion(message_buffer.to, message_buffer);
+
 		getchar();
 		//Listes de joueurs
 	 //choix du jour pour la question
@@ -563,3 +566,8 @@ void sendAskToMessage(Client addressee)
 	}
 }
 
+void sendQuestion(Client clientTo, Message message)
+{
+	message.command = ANSWER;
+	write(clientTo.pipe_fd, &message,sizeof(Message));
+}

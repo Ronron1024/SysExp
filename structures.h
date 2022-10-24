@@ -13,7 +13,8 @@ typedef enum COMMAND
 	START,
 	VOTE,
 	ASK,
-	ASK_TO
+	ASK_TO,
+	ANSWER
 } COMMAND;
 
 typedef enum GAME_RESULT
