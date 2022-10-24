@@ -49,6 +49,7 @@ int countlines(char *filename);
 
 
 void sendPlayerListTo(Client addressee);
+void sendAskToMessage(Client addressee);
 
 int main()
 {
@@ -90,12 +91,14 @@ int main()
 	clients[randomSpy].is_spy = 1;
 
 	//printf("Le randomSpy is %d\n",randomSpy);
+	//Server envoie spy au spy
 
 	char word[STRING_MAX_SIZE];
 	int numberWord = countlines(PATH_BDD_WORD);
 	PickRandom(PATH_BDD_WORD,numberWord,word);
 
 	printf("The word is = %s\n", word);
+	//Server envoie le mot à tous sauf au spy
 	
 	int firstPlayer = chooseRandomInt(connected_clients);
 	while( clients[firstPlayer].is_spy == 1){
@@ -109,14 +112,12 @@ int main()
 
 	startCountdown(GAME_TIME_LIMIT);
 
-	sleep(5);
 
-	//while (start_game)
-	while(1)
+	while (start_game)
 	{
-		printf("Getpid %d\n",getpid());
+		sendAskToMessage(clients[firstPlayer]);
 	 	sendPlayerListTo(clients[firstPlayer]);
-		sleep(1120);
+		getchar();
 		//Listes de joueurs
 	 //choix du jour pour la question
 	 //Envoie question
@@ -522,8 +523,6 @@ void sendPlayerListTo(Client addressee)
 	Message message_buffer;
 	message_buffer.command = ASK_TO;
 
-	printf("1 ere\n");
-
 	for (int i = 0; i < connected_clients; i++)
 	{
 		if (addressee.PID != clients[i].PID)
@@ -532,6 +531,32 @@ void sendPlayerListTo(Client addressee)
 			message_buffer.to = addressee;
 			write(addressee.pipe_fd, &message_buffer, sizeof(Message));
 			printf("How many/ name = %s\n",clients[i].pseudo);
+		}
+	}
+}
+
+void sendAskToMessage(Client addressee)
+{
+	Client server = {
+		"SERVER",
+		-1,
+		server_pipe_fd,
+		getpid()
+	};
+	Message vote_message = {
+		server,
+		server,
+		ASK_TO,
+		"ASK_TO",
+		connected_clients - 1 // minus current player
+	};
+
+	for (int i = 0; i < connected_clients; i++)
+	{	
+		if(addressee.PID==clients[i].PID)
+		{
+			vote_message.to = addressee;
+			write(addressee.pipe_fd, &vote_message, sizeof(Message));
 		}
 	}
 }

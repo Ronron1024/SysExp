@@ -121,10 +121,10 @@ void deconnectServer()
 
 void handleMessage(Message message)
 {
+	Client player_list[SERVER_MAX_CLIENTS];
 	switch (message.command)
 	{
 		case VOTE:
-			Client player_list[SERVER_MAX_CLIENTS];
 			readPlayerList(message.data, player_list);
 			Client voted = chosePlayer(message.data, player_list);
 			Message vote_message = {
@@ -149,8 +149,9 @@ void handleMessage(Message message)
 			break;
 
 		case ASK_TO:
-
+			//printf("je suis la qd meme\n");
 			readPlayerList(message.data, player_list);
+			Client voted2 = chosePlayer(message.data, player_list);
 			//Client player2_list[SERVER_MAX_CLIENTS];
 			//printf("je suis la qd meme\n");
 			//readPlayerList(2, player2_list);
