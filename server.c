@@ -52,6 +52,7 @@ void sendPlayerListTo(Client addressee);
 void sendAskToMessage(Client addressee);
 void sendQuestion(Client clientTo, Message message);
 Client clientToken(pid_t token);
+void sendWord(char* word);
 
 
 int main()
@@ -93,7 +94,7 @@ int main()
 	Client spy = clients[randomSpy];
 	clients[randomSpy].is_spy = 1;
 
-	printf("Le randomSpy is %d\n",randomSpy);
+	//printf("Le randomSpy is %d\n",randomSpy);
 	//Server envoie spy au spy
 	Message messageSpy;
 	messageSpy.command = IS_SPY;
@@ -105,6 +106,7 @@ int main()
 
 	printf("The word is = %s\n", word);
 	//Server envoie le mot à tous sauf au spy
+	sendWord(word);
 	
 	int firstPlayer = chooseRandomInt(connected_clients);
 	while( clients[firstPlayer].is_spy == 1){
@@ -588,6 +590,21 @@ Client clientToken(pid_t token)
 	{
 		if( clients[i].PID == token )
 			return clients[i];
+	}
+
+}
+
+void sendWord(char* word)
+{
+	for(int i =0; i < connected_clients;i++)
+	{
+		if(clients[i].is_spy != 1)
+		{
+			Message messageWord;
+			messageWord.command = WORD;
+			strcpy(messageWord.message,word);
+			write(clients[i].pipe_fd, &messageWord,sizeof(Message));	
+		}
 	}
 
 }

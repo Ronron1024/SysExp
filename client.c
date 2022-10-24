@@ -176,6 +176,9 @@ void handleMessage(Message message)
 			printf("You are the spy\n");
 			break;
 
+		case WORD:
+			printf("The word is: %s\n",message.message);
+
 	}
 }
 
