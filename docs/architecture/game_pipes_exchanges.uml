@@ -1,0 +1,12 @@
+@startuml
+actor Spy
+actor Client
+entity Server
+database Database
+Client -> Server : CONNECTION
+Server -> Server : START
+Server <-> Database : pick word
+Server -> Client : VOTE
+Client -> Server : voted X
+Server <-> Spy : ask word
+@enduml
