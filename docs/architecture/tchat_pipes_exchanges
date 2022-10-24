@@ -1,0 +1,9 @@
+@startuml
+actor Client
+entity Server
+actor "Other Clients" as Clients
+Client -> Server : CONNECTION
+Client -> Server : MESSAGE
+Server -> Clients : MESSAGE
+Client -> Server : DECONNECTION
+@enduml
