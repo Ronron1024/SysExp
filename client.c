@@ -44,6 +44,7 @@ int main ()
 	// Connect to server
 	server_pipe_fd = readServerInfo(SERVER_INFO_FILE_PATH);
  	connectServer(server_pipe_fd, me, 0);
+	printf("Connected to server\n");
 
 	// Start client tchat
 	pid_t tchat_pid = fork();
@@ -132,6 +133,7 @@ void handleMessage(Message message)
 	{
 		case VOTE:
 			readPlayerList(message.data, player_list);
+			printf("\nVote for (number) :\n");
 			Client voted = chosePlayer(message.data, player_list);
 			Message vote_message = {
 				me,
@@ -142,9 +144,9 @@ void handleMessage(Message message)
 			break;
 		
 		case ASK_SPY:
-			printf("%s\n", message.message);
+			printf("\n%s\n", message.message);
 			char word[STRING_MAX_SIZE] = {0};
-			scanf("%s", word);
+			fgets(word, STRING_MAX_SIZE, stdin);
 			Message answer_message = {
 				me,
 				me,
@@ -155,36 +157,42 @@ void handleMessage(Message message)
 			break;
 
 		case ASK_TO:
-			//printf("je suis la qd meme\n");
 			readPlayerList(message.data, player_list);
+			printf("\nAsk a question to (number):\n");
 			Client choosen = chosePlayer(message.data, player_list);
 			Message question = {
 				me,
 				choosen,
 				ASK_TO
 			};
-
+			
+			printf("Question :\n");
 			fgets(question.message,STRING_MAX_SIZE,stdin);
 			write(server_pipe_fd, &question, sizeof(Message));
 			break;
 		case ANSWER:
-			printf("De %s a  %s : %s\n",message.from.pseudo,message.to.pseudo,message.message);						
+			printf("\n%s ask you: %s\n",message.from.pseudo,message.message);						
 			Message answer ={
 				me,
 				message.from,
 				ANSWER
 			};
+			printf("Answer :\n");
 			fgets(answer.message,STRING_MAX_SIZE,stdin);
 			write(server_pipe_fd,&answer,sizeof(Message));
 			break;
 
 		case IS_SPY:
+			system("clear");
 			printf("You are the spy\n");
 			break;
 
 		case WORD:
+			system("clear");
 			printf("The word is: %s\n",message.message);
+			break;
 
+		default:
 	}
 }
 
@@ -200,12 +208,18 @@ void readPlayerList(int n, Client* player_list)
 
 Client chosePlayer(int n, Client* player_list)
 {
-	int choice = 0;
+	char buff[STRING_MAX_SIZE] = {0};
+	int choice = -1;
 	for (int i = 0; i < n; i++)
 	{
 		printf("%d. %s\n", i+1, player_list[i].pseudo);
 	}
-	scanf("%d ", &choice);
+	while (choice < 1 || choice > n)
+	{
+		printf("Choice :\n");
+		fgets(buff, STRING_MAX_SIZE, stdin);
+		choice = (int) strtol(buff, NULL, 10);
+	}
 
 	return player_list[choice-1];
 }

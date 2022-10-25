@@ -12,7 +12,7 @@ typedef enum COMMAND
 	DECONNECTION,
 	START,
 	VOTE,
-	ASK,
+	ASK_SPY,
 	ASK_TO,
 	ANSWER,
 	IS_SPY,

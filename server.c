@@ -1,3 +1,4 @@
+#include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -101,7 +102,6 @@ int main()
 	Client spy = clients[randomSpy];
 	clients[randomSpy].is_spy = 1;
 
-	//printf("Le randomSpy is %d\n",randomSpy);
 	//Server envoie spy au spy
 	Message messageSpy;
 	messageSpy.command = IS_SPY;
@@ -111,7 +111,7 @@ int main()
 	int numberWord = countlines(PATH_BDD_WORD);
 	PickRandom(PATH_BDD_WORD,numberWord,word);
 
-	printf("The word is = %s\n", word);
+	//printf("The word is = %s\n", word);
 	//Server envoie le mot à tous sauf au spy
 	sendWord(word);
 	
@@ -122,32 +122,25 @@ int main()
 
 	pid_t token = clients[firstPlayer].PID;
 
-	printf("token du first player = %d\n",token);
-	printf("FirstPlayer= %s\n", clients[firstPlayer].pseudo);
-
 	startCountdown(GAME_TIME_LIMIT);
-
+	system("clear");
+	printf("Game start !\n\n");
 
 	while (start_game)
 	{
+		printf("%s turn.\n", clientToken(token).pseudo);
 		sendAskToMessage(clientToken(token));
 	 	sendPlayerListTo(clientToken(token));
 		read(server_pipe_fd,&message_buffer,sizeof(Message));
-		printf("%s: demande à %s: %s\n",message_buffer.from.pseudo, message_buffer.to.pseudo,message_buffer.message);
+		printf("%s ask to %s:\n\t%s\n",message_buffer.from.pseudo, message_buffer.to.pseudo,message_buffer.message);
 		sendQuestion(message_buffer.to, message_buffer);
 		read(server_pipe_fd, &message_buffer, sizeof(Message));
-		printf("%s %s %s\n",message_buffer.from.pseudo, message_buffer.to.pseudo, message_buffer.message);
+		printf("%s answer:\n\t%s\n",message_buffer.from.pseudo, message_buffer.message);
 		token = message_buffer.from.PID;
-
-
-		//Listes de joueurs
-	 //choix du jour pour la question
-	 //Envoie question
-	 //cght token
-	 //reponse
 	}
 
 	// END GAME
+	printf("Game end !\n\nTime to vote...\n");
 	sendVoteMessage();
 	sendPlayerList();
 	int has_voted = 0;
@@ -174,7 +167,7 @@ int main()
 	char spy_word[STRING_MAX_SIZE] = {0};
 	strcpy(spy_word, message_buffer.message);
 
-	printf("%s says the word was %s.\n", spy.pseudo, spy_word);
+	printf("%s says the word was %s\n", spy.pseudo, spy_word);
 	printf("\nThe word was %s\n", word);
 
 	// Game result
@@ -470,6 +463,12 @@ void askWord(Client client)
 
 GAME_RESULT getResult(Client spy, Client voted, char* word, char* spy_word)
 {
+	// spy_word to lower
+	for (int i = 0; i < strlen(spy_word); i++)
+	{
+		spy_word[i] = tolower(spy_word[i]);
+	}
+
 	if (strcmp(word, spy_word) == 0)
 		return SPY;
 	else if (spy.PID == voted.PID)
@@ -483,9 +482,6 @@ GAME_RESULT getResult(Client spy, Client voted, char* word, char* spy_word)
 
 void PickRandom(char* info_file_path ,int taille, char* buf){
 
-    	int dp=0;
-    	int desc=0;
-    	srand(time(NULL));
 
     	int i ;
     	taille = taille - rand() % (taille);
@@ -500,10 +496,6 @@ void PickRandom(char* info_file_path ,int taille, char* buf){
 	{                                           //
 		fgets(buf, sizeof(char)*STRING_MAX_SIZE, file); //
 	}
-
-//	printf("pipe is: %s\n", buf);
-//	dp=open(buf,O_WRONLY);
-//	close(desc);
 }
 
 int chooseRandomInt(int connected_clients)
@@ -537,9 +529,8 @@ int countlines(char *filename)
 	lines++; 
 	}
 
-	printf("Nb line = %d\n",lines);
 
-	return (chooseRandomInt(lines) + 1);
+	return lines;
 	
 	//size_t fread( void * buffer, size_t blocSize, size_t blocCount, FILE * stream );  
 }
@@ -556,7 +547,6 @@ void sendPlayerListTo(Client addressee)
 			message_buffer.from = clients[i];
 			message_buffer.to = addressee;
 			write(addressee.pipe_fd, &message_buffer, sizeof(Message));
-			printf("How many/ name = %s\n",clients[i].pseudo);
 		}
 	}
 }
@@ -602,7 +592,7 @@ Client clientToken(pid_t token)
 		if( clients[i].PID == token )
 			return clients[i];
 	}
-
+	return clients[0];
 }
 
 void sendWord(char* word)

@@ -43,6 +43,8 @@ int main (int argc, char** argv)
 	me.PID = getpid();
 	strcpy(me.pseudo, argv[1]);
 
+	printf("[%s] Tchat room\n", me.pseudo);
+
 	// Connect to server
 	server_pipe_fd = readServerInfo(SERVER_INFO_FILE_PATH);
  	connectServer(server_pipe_fd, me, 0);
