@@ -54,6 +54,7 @@ dkms.conf
 # VSCode config
 .vs/
 .vscode/
+.idea/
 client
 server
 *.swp
