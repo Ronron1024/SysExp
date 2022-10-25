@@ -179,6 +179,8 @@ h2 {
 
   display: flex;
   flex-flow: row-reverse nowrap;
+  vertical-align: middle;
+  padding-top: 20%;
   height: 100%;
   display: inline-block;
   padding: 10px;
