@@ -1,11 +1,22 @@
 @startuml
 actor Spy
+actor "Other Clients" as Clients
 actor Client
 entity Server
 database Database
 Client -> Server : CONNECTION
+Clients -> Server : CONNECTION
 Server -> Server : START
 Server <-> Database : pick word
+Server -> Client : send word
+Server -> Clients : send word
+Server -> Spy : you are spy
+loop until timer finished
+    Server -> Client : player list
+    Client -> Server : question to X
+    Server -> Clients : question to X
+    Clients -> Server : X answer
+end
 Server -> Client : VOTE
 Client -> Server : voted X
 Server <-> Spy : ask word
