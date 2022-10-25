@@ -50,6 +50,11 @@ int countlines(char *filename);
 
 
 void sendPlayerListTo(Client addressee);
+void sendAskToMessage(Client addressee);
+void sendQuestion(Client clientTo, Message message);
+Client clientToken(pid_t token);
+void sendWord(char* word);
+
 
 int main()
 {
@@ -97,12 +102,18 @@ int main()
 	clients[randomSpy].is_spy = 1;
 
 	//printf("Le randomSpy is %d\n",randomSpy);
+	//Server envoie spy au spy
+	Message messageSpy;
+	messageSpy.command = IS_SPY;
+	write(clients[randomSpy].pipe_fd,&messageSpy,sizeof(Message));
 
 	char word[STRING_MAX_SIZE];
 	int numberWord = countlines(PATH_BDD_WORD);
 	PickRandom(PATH_BDD_WORD,numberWord,word);
 
 	printf("The word is = %s\n", word);
+	//Server envoie le mot à tous sauf au spy
+	sendWord(word);
 	
 	int firstPlayer = chooseRandomInt(connected_clients);
 	while( clients[firstPlayer].is_spy == 1){
@@ -116,14 +127,19 @@ int main()
 
 	startCountdown(GAME_TIME_LIMIT);
 
-	sleep(5);
 
-	//while (start_game)
-	while(1)
+	while (start_game)
 	{
-		printf("Getpid %d\n",getpid());
-	 	sendPlayerListTo(clients[firstPlayer]);
-		sleep(1120);
+		sendAskToMessage(clientToken(token));
+	 	sendPlayerListTo(clientToken(token));
+		read(server_pipe_fd,&message_buffer,sizeof(Message));
+		printf("%s: demande à %s: %s\n",message_buffer.from.pseudo, message_buffer.to.pseudo,message_buffer.message);
+		sendQuestion(message_buffer.to, message_buffer);
+		read(server_pipe_fd, &message_buffer, sizeof(Message));
+		printf("%s %s %s\n",message_buffer.from.pseudo, message_buffer.to.pseudo, message_buffer.message);
+		token = message_buffer.from.PID;
+
+
 		//Listes de joueurs
 	 //choix du jour pour la question
 	 //Envoie question
@@ -533,8 +549,6 @@ void sendPlayerListTo(Client addressee)
 	Message message_buffer;
 	message_buffer.command = ASK_TO;
 
-	printf("1 ere\n");
-
 	for (int i = 0; i < connected_clients; i++)
 	{
 		if (addressee.PID != clients[i].PID)
@@ -547,3 +561,61 @@ void sendPlayerListTo(Client addressee)
 	}
 }
 
+void sendAskToMessage(Client addressee)
+{
+	Client server = {
+		"SERVER",
+		-1,
+		server_pipe_fd,
+		getpid()
+	};
+	Message vote_message = {
+		server,
+		server,
+		ASK_TO,
+		"ASK_TO",
+		connected_clients - 1 // minus current player
+	};
+
+	for (int i = 0; i < connected_clients; i++)
+	{	
+		if(addressee.PID==clients[i].PID)
+		{
+			vote_message.to = addressee;
+			write(addressee.pipe_fd, &vote_message, sizeof(Message));
+		}
+	}
+}
+
+void sendQuestion(Client clientTo, Message message)
+{
+	message.command = ANSWER;
+	write(clientTo.pipe_fd, &message,sizeof(Message));
+}
+
+
+
+Client clientToken(pid_t token)
+{
+	for (int i=0; i<connected_clients; i++)
+	{
+		if( clients[i].PID == token )
+			return clients[i];
+	}
+
+}
+
+void sendWord(char* word)
+{
+	for(int i =0; i < connected_clients;i++)
+	{
+		if(clients[i].is_spy != 1)
+		{
+			Message messageWord;
+			messageWord.command = WORD;
+			strcpy(messageWord.message,word);
+			write(clients[i].pipe_fd, &messageWord,sizeof(Message));	
+		}
+	}
+
+}

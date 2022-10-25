@@ -127,10 +127,10 @@ void deconnectServer()
 
 void handleMessage(Message message)
 {
+	Client player_list[SERVER_MAX_CLIENTS];
 	switch (message.command)
 	{
 		case VOTE:
-			Client player_list[SERVER_MAX_CLIENTS];
 			readPlayerList(message.data, player_list);
 			Client voted = chosePlayer(message.data, player_list);
 			Message vote_message = {
@@ -155,13 +155,36 @@ void handleMessage(Message message)
 			break;
 
 		case ASK_TO:
-			readPlayerList(message.data, player_list);
-			//Client player2_list[SERVER_MAX_CLIENTS];
 			//printf("je suis la qd meme\n");
-			//readPlayerList(2, player2_list);
+			readPlayerList(message.data, player_list);
+			Client choosen = chosePlayer(message.data, player_list);
+			Message question = {
+				me,
+				choosen,
+				ASK_TO
+			};
+
+			fgets(question.message,STRING_MAX_SIZE,stdin);
+			write(server_pipe_fd, &question, sizeof(Message));
 			break;
-            
-		default:
+		case ANSWER:
+			printf("De %s a  %s : %s\n",message.from.pseudo,message.to.pseudo,message.message);						
+			Message answer ={
+				me,
+				message.from,
+				ANSWER
+			};
+			fgets(answer.message,STRING_MAX_SIZE,stdin);
+			write(server_pipe_fd,&answer,sizeof(Message));
+			break;
+
+		case IS_SPY:
+			printf("You are the spy\n");
+			break;
+
+		case WORD:
+			printf("The word is: %s\n",message.message);
+
 	}
 }
 
@@ -182,7 +205,7 @@ Client chosePlayer(int n, Client* player_list)
 	{
 		printf("%d. %s\n", i+1, player_list[i].pseudo);
 	}
-	scanf("%d", &choice);
+	scanf("%d ", &choice);
 
 	return player_list[choice-1];
 }
