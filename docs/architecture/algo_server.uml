@@ -1,0 +1,52 @@
+@startuml
+:Create server pipe/config file;
+fork
+    :Menu;
+    if (User input) then (1)
+        :SIGUSR1\nstart_game=1;
+    else (2)
+        :Kill;
+        end
+    endif
+fork again
+    repeat
+    :Read server pipe;
+    :handleMessage;
+    split
+        :CONNECTION;
+    split again
+        :DECONNECTION;
+    end split
+    repeat while (start_game) is (0)
+    ->1;
+end fork
+:Chose spy;
+:Chose word;
+repeat
+    :Chose first player;
+repeat while (chosen) is (is spy)
+->is not spy;
+:token=first player PID;
+fork
+:Start timer : init;
+repeat
+:elapsed = time - init;
+repeat while (elapsed) is (< timer)
+->>timer;
+:SIGUSR2\nstart_game=0;
+fork again
+repeat
+:token ask to X;
+:X answer;
+:token = X PID;
+repeat while (start_game) is (1)
+->0;
+end fork
+repeat
+:Read vote;
+repeat while (nbr vote) is (< nbr players)
+->> nbr players;
+:Ask word to spy;
+:Result;
+end
+@enduml
