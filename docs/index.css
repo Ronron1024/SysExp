@@ -2,7 +2,7 @@ nav {
     margin: 27px auto 0;
   
     position: relative;
-    width: 590px;
+    width: 470px;
     height: 50px;
     background-color: #34495e;
     border-radius: 8px;
@@ -55,7 +55,7 @@ nav {
     left: 110px;
     background-color: #e74c3c;
   }
-  
+
   nav .start-blog, a:nth-child(3):hover~.animation {
     width: 100px;
     left: 210px;
@@ -71,11 +71,12 @@ nav {
     left: 470px;
     background-color: #e67e22;
   }
-  
+
   body {
     font-size: 12px;
     font-family: sans-serif;
     background: #2c3e50;
+    margin:5%;
   }
   h1 {
     text-align: center;
@@ -96,9 +97,9 @@ h2 {
   text-shadow: 2px 2px 4px #000000;
   font-family: 'Cherry Swash', cursive;
 }
-  
+
   p {
-    
+
       bottom: 20px;
       width: 100%;
       text-align: center;
@@ -106,25 +107,31 @@ h2 {
       font-family: 'Cherry Swash',cursive;
       font-size: 16px;
   }
-  
+
+.context {
+
+  bottom: 20px;
+  width: 100%;
+  text-align: left;
+  color: #ecf0f1;
+  font-family: 'Cherry Swash',cursive;
+  font-size: 16px;
+  margin-left: 3%;
+}
+
   span {
       color: #2BD6B4;
   }
 
   header {
-  
- 
+
+
 
     margin-bottom :50px;
 
-    
+
   }
 
-  body {
-   
-
-    
-  }
 
   footer {
     position: static;
@@ -135,7 +142,7 @@ h2 {
     font-family: 'Cherry Swash',cursive;
     font-size: 16px;
 
-    
+
   }
 .principal {
 
@@ -153,7 +160,7 @@ h2 {
 }
 
 .photo{
-  
+
   display: flex;
   flex-flow: row-reverse nowrap;
   height: 100%;
